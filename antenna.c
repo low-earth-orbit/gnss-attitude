@@ -100,13 +100,12 @@ int main (void) {
         
         time1 = (char*)malloc(sizeof(char*));
         time2 = (char*)malloc(sizeof(char*));
-        sat = (char*)malloc(sizeof(char)*20);
+        sat = (char*)malloc(sizeof(char*));
 
         sscanf(line, "%s %s %s %lf %lf %lf %lf", time1, time2, sat, &az, &el, &snr, &l1_mp);
 
         Sat satObj = createSat(time1, time2, sat, az, el, snr, l1_mp);
         SatArray[SatArrayIndex] = satObj; // Add each sat to sat array
-        
         
         if(!checkDuplicateTime(concat(time1, time2), SatArray, SatArrayIndex)) { // Check if the current time is unique
             uniqueTime[TimeArrayIndex] = concat(time1, time2);
@@ -114,9 +113,14 @@ int main (void) {
             printf("SatArray[SatArrayIndex].sat: %s\n", SatArray[SatArrayIndex].sat);
             printf("TimeArrayIndex: %d\n", TimeArrayIndex);
             TimeArrayIndex++;
-        }  
+        }
         SatArrayIndex++;
+        free(time1);
+        free(time2);
+        free(sat);
     }
+    free(uniqueTime);
+    free(SatArray);
 
    fclose(fp);
    
