@@ -3,45 +3,33 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define ARRAY_SIZE 8192
+#define MAX_NUM_SIGNALS 10000
+#define MAX_NUM_EPOCHES 1000
+#define LEN_EACH_RECORD 1000
 
 typedef struct {
-    char* time;
-    char* sat;
+    char* time; // GPS time
+    char* satName;
     double az;
     double el;
     double snr;
-    double l1_mp;
-}Sat;
+} Sat; // satellite signal
 
-char* concat(const char *time1, const char *time2)
-{
-    char *time = malloc(strlen(time1) + strlen(time2) + 1); // +1 for the null-terminator
-    // in real code you would check for errors in malloc here
-    strcpy(time, time1);
-    strcat(time, "\t");
-    strcat(time, time2);
-    return time;
-}
+typedef struct {
+    Sat* satArray; // array of satellites with the same time
+    int numSat;
+    // Sol* solutionArray;
+} Epoch;
 
-Sat createSat(char* time1, char* time2, char* sat, double az, double el, double snr, double l1_mp) {
+Sat createSat(char* time, char* satName, double az, double el, double snr) {
     Sat satObj;
-    satObj.time = concat(time1, time2);
-    satObj.sat = sat;
+    satObj.time = time;
+    satObj.satName = satName;
     satObj.az = az;
     satObj.el = el;
     satObj.snr = snr;
-    satObj.l1_mp = l1_mp;
-
     return satObj;
 }
-
-typedef struct {
-    Sat* satArray; // Time are the same
-    int numberOfSatellie;
-    // Sol* solutionArray;
-}Epoch;
-
 
 // Epoch createEpoch(Sat* satArray) {
 //     Epoch epochObj;
@@ -52,25 +40,24 @@ typedef struct {
 //     return epochObj;
 // }
 
-//36x36 2d array
-
-char* time1;
-char* time2;
-char* sat;
-double az;
-double el;
-double snr;
-double l1_mp;
-
-char** uniqueTime; // A time array storing all unique times
-Sat* SatArray;
-Epoch* epochArray;
-
-bool checkDuplicateTime(char* time, Sat* satArray, int satArrayIndex) {
+/*
+bool isTimeInSatArray(char* time, Sat* satArray, int satArrayIndex) {
     for (int i = 0; i < satArrayIndex; i++) {
         if(strcmp(satArray[i].time, time) == 0) {
             // If duplicate time entry found
             //printf("%s\n", satArray[i].sat);
+            return true;
+        }
+    //printf("time: %s\n", time);
+    //return false;
+	}
+}
+*/
+
+bool isTimeInArray(char* time, char** uniqueTimeArray, int timeArrayIndex) {
+    for (int i = 0; i < timeArrayIndex; i++) {
+        if(strcmp(time, uniqueTimeArray[i]) == 0) {
+            // If duplicate time entry found
             return true;
         }
     }
@@ -78,51 +65,87 @@ bool checkDuplicateTime(char* time, Sat* satArray, int satArrayIndex) {
     return false;
 }
 
+char* concat(const char* str1, const char* str2)
+{
+    char* str;
+    str = (char*)malloc(strlen(str1) + strlen(str2) +2); 
+    // +1 for the null-terminator; +1 for the seperator
+    if (str == NULL) {
+        fprintf(stderr, "malloc() failed in concat()\n");
+    } // check for errors in malloc here
+    else {
+        strcpy(str, str1);
+        strcat(str, " ");
+        strcat(str, str2);
+    }
+    return str;
+}
+
 int main (void) {
-   FILE *fp = NULL;
-   char line[1024];
-   
-   uniqueTime = (char**)malloc(sizeof(char*));
-   SatArray = (Sat*)malloc(5000*sizeof(Sat));
-   //epochArray = (Sat*)malloc(5000*sizeof(Sat));
-   int SatArrayIndex = 0;
-   int TimeArrayIndex = 0;
+	char** uniqueTimeArray; // A time array storing all unique times
+	Sat* satArray; // A sat array storing all satelite signals
+	//Epoch* epochArray;
+	
+	uniqueTimeArray = (char**)malloc(MAX_NUM_EPOCHES*sizeof(char*));
+	satArray = (Sat*)malloc(MAX_NUM_SIGNALS*sizeof(Sat));
+	//epochArray = (Sat*)malloc(MAX_NUM_EPOCHES*sizeof(Sat));
+	
+	int satArrayIndex = 0;
+	int timeArrayIndex = 0;
+	
+	FILE *fp = NULL;
+	char line[LEN_EACH_RECORD];
+	
+	/* opening file for reading */
+	fp = fopen("new.txt" , "r");
+	if(fp == NULL) {
+		perror("Error opening file\n");
+		return(-1);
+	}
+	
+	fgets(line, sizeof(line), fp); // Skip header
+	while(fgets(line, sizeof(line), fp) != NULL) {
 
-   /* opening file for reading */
-   fp = fopen("sat_pos_az_el.txt" , "r");
-   if(fp == NULL) {
-      perror("Error opening file");
-      return(-1);
-   }
+		char* time1 = (char*)malloc(sizeof(char)*11);
+		char* time2 = (char*)malloc(sizeof(char)*11);
+		char* satName = (char*)malloc(sizeof(char)*4);
+		double az;
+		double el;
+		double snr;
 
-   fgets(line, sizeof(line), fp); // Skip header
-   while(fgets(line, sizeof(line), fp) != NULL) {
-        
-        time1 = (char*)malloc(sizeof(char*));
-        time2 = (char*)malloc(sizeof(char*));
-        sat = (char*)malloc(sizeof(char*));
-
-        sscanf(line, "%s %s %s %lf %lf %lf %lf", time1, time2, sat, &az, &el, &snr, &l1_mp);
-
-        Sat satObj = createSat(time1, time2, sat, az, el, snr, l1_mp);
-        SatArray[SatArrayIndex] = satObj; // Add each sat to sat array
-        
-        if(!checkDuplicateTime(concat(time1, time2), SatArray, SatArrayIndex)) { // Check if the current time is unique
-            uniqueTime[TimeArrayIndex] = concat(time1, time2);
-            printf("uniqueTime[TimeArrayIndex]: %s\n", uniqueTime[TimeArrayIndex]);
-            printf("SatArray[SatArrayIndex].sat: %s\n", SatArray[SatArrayIndex].sat);
-            printf("TimeArrayIndex: %d\n", TimeArrayIndex);
-            TimeArrayIndex++;
+		sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, satName, &az, &el, &snr);
+		char* time = concat(time1, time2);
+		//printf("time: %s\n", time);
+		
+		/*
+ 		if(!isTimeInSatArray(time, satArray, satArrayIndex)) { // Check if the current time is unique
+			uniqueTimeArray[timeArrayIndex] = time;
+			printf("uniqueTimeArray[timeArrayIndex]: %s\n", uniqueTimeArray[timeArrayIndex]);
+			printf("timeArrayIndex: %d\n", timeArrayIndex);
+			timeArrayIndex++;
         }
-        SatArrayIndex++;
+		*/
+  		if(!isTimeInArray(time, uniqueTimeArray, timeArrayIndex)) { // Check if the current time is unique
+			uniqueTimeArray[timeArrayIndex] = time;
+			printf("uniqueTimeArray[timeArrayIndex]: %s\n", uniqueTimeArray[timeArrayIndex]);
+			printf("timeArrayIndex: %d\n", timeArrayIndex);
+			timeArrayIndex++;
+        }
+		
+		Sat satObj = createSat(time, satName, az, el, snr);
+		satArray[satArrayIndex] = satObj; // Add each sat to sat array
+		//printf("satArrayIndex: %d\n", satArrayIndex);
+		//printf("satArray[satArrayIndex].time: %s\n", satArray[satArrayIndex].time);
+        satArrayIndex++;
+        
         free(time1);
         free(time2);
-        free(sat);
+        free(satName);
+		free(time);
     }
-    free(uniqueTime);
-    free(SatArray);
-
-   fclose(fp);
-   
-   exit(0);
+    
+	free(uniqueTimeArray);
+	free(satArray);
+	fclose(fp); 
+	exit(0);
 }
