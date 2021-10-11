@@ -2,10 +2,14 @@
 天地玄黃宇宙洪荒日月盈昃辰宿列張
 */
 
+/* To compile
+gcc convert.c antenna.c -lm -o antenna
+*/
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include "convert.h"
 
 /*
 	Input file information
@@ -233,8 +237,50 @@ int main (void) {
 		Epoch epochObj = createEpoch(timeArray[i], epochSatArray, epochSatArrayIndex); //numSat initially 0
 		epochArray[i] = epochObj;
 	}
-
-	printEpochArray(epochArray, timeArrayIndex);
+	//printEpochArray(epochArray, timeArrayIndex);
+	
+	/*
+		SNR method calculations
+	*/
+	double xyz[timeArrayIndex][MAX_NUM_SAT_EPOCH][3];
+	double xyzSol[timeArrayIndex][3]; // xyz solution array
+	for (int i = 0; i < timeArrayIndex; i++) {
+		for (int j = 0; j < epochArray[i].numSat; j++){
+			/* get LOS vector */
+			ae2xyz(epochArray[i].satArray[j].az, epochArray[i].satArray[j].el, xyz[i][j]); 
+			//printf("epoch index = %i || sat index = %i || LOS vector (%lf, %lf %lf)\n", i, j, xyz[i][j][0], xyz[i][j][1], xyz[i][j][2]);
+			
+			/* weight by snr */ 
+			xyz[i][j][0] *= epochArray[i].satArray[j].snr;
+			xyz[i][j][1] *= epochArray[i].satArray[j].snr; 
+			xyz[i][j][2] *= epochArray[i].satArray[j].snr;			
+			//printf("epoch index = %i || sat index = %i || weighted LOS vector (%lf, %lf %lf)\n", i, j, xyz[i][j][0], xyz[i][j][1], xyz[i][j][2]);
+			
+			/* add to sum*/
+			xyzSol[i][0] += xyz[i][j][0];
+			xyzSol[i][1] += xyz[i][j][1]; 
+			xyzSol[i][2] += xyz[i][j][2];
+			//printf("epoch index = %i || sat index = %i || Accumulated sum of weighted LOS vector (%lf, %lf %lf)\n", i, j, xyzSol[i][0], xyzSol[i][1], xyzSol[i][2]);
+		}
+	}
+	
+	/*
+		convert the sum to unit vector, finish xyz solution
+	*/
+	for (int i = 0; i < timeArrayIndex; i++) {
+		normalizeXyz(xyzSol[i]);
+		printf("epoch = %s || antenna boresight unit vector (x, y, z) = (%lf, %lf, %lf)\n", epochArray[i].time, xyzSol[i][0], xyzSol[i][1], xyzSol[i][2]);
+	}
+	
+	/*
+		from xyz solution derive azimuth-elevation solution
+	*/
+	double aeSol[timeArrayIndex][2]; // ae solution array
+	for (int i = 0; i < timeArrayIndex; i++) {
+		xyz2ae(xyzSol[i][0], xyzSol[i][1], xyzSol[i][2], aeSol[i]);
+		printf("epoch = %s || antenna boresight azimuth and elevation angle in degrees (az, el) = (%lf, %lf)\n", epochArray[i].time, aeSol[i][0], aeSol[i][1]);
+	}
+	
 	
 	/*
 		free()
