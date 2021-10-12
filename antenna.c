@@ -1,27 +1,41 @@
-/*
-天地玄黃宇宙洪荒日月盈昃辰宿列張
-*/
-
-/* To compile
-gcc convert.c antenna.c -lm -o antenna
-*/
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "convert.h"
+#include "convert.h" // Coordinate transformation methods/*
+
+/*
+天地玄黃宇宙洪荒日月盈昃辰宿列張
+*/
+
+/*
+
+Notes for users of this program: 
+1. Modify the input file information, if necessary
+2. Recommended elevation cutoff angle = 0
+3. Do a sanity check for the input file. Input file should closely assemble input_example.txt. Input file should not contain the following:
+	a. SBAS satellites (unselect this option in RTKLIB),
+	b. Satellites without azimuth-elevation information, or
+	c. Geostationary satellites
+4. Update the list of geostationary satellites: char* geoSatList[GEOSATLISTINDEX] (This list includes geo sats up to 2021-10-12)
+5. To compile
+	gcc antenna.c convert.c -lm -o antenna
+	
+*/
+
 
 /*
 	Input file information
 */
 #define INPUT_FILE_PATH "input.txt"
-#define MAX_NUM_SIGNALS 10000
-#define MAX_NUM_EPOCHES 1000
-#define MAX_NUM_CHAR_LINE 100 // num of char in each record or line
+#define MAX_NUM_EPOCHES 86400 // Default value good for 24h 1Hz data
 #define MAX_NUM_SAT_EPOCH 100 // maximum number of satellites visible in an epoch
+#define MAX_NUM_SIGNALS MAX_NUM_EPOCHES*MAX_NUM_SAT_EPOCH
+#define MAX_NUM_CHAR_LINE 100 // num of char in each record or line
 #define NUM_CHAR_DATE 10
 #define NUM_CHAR_TIME 10
 #define NUM_CHAR_SAT 3
+#define NUM_CHAR_SAT_PRN 3
 
 typedef struct {
 	char* time; // GPS time
@@ -56,10 +70,10 @@ Epoch createEpoch(char* time, Sat* satArray, int numSat) {
 	return epochObj;
 }
 
-bool isTimeInTimeArray(char* time, char** timeArray, int index) {
+bool isStrInArray(char* str, char** array, int index) {
 	for (int i = 0; i < index; i++) {
-		if(strcmp(time, timeArray[i]) == 0) {
-			// If duplicate time entry found
+		if(strcmp(str, array[i]) == 0) {
+			// If duplicate str entry found
 			return true;
 		}
 	}
@@ -181,31 +195,42 @@ int main (void) {
 		double snr;
 
 		sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, satName, &az, &el, &snr);
-		char* time = concat(time1, time2);
-		if (time == NULL)
-			exit(-1);//failed to allocate memory in concat() above
-
-		free(time1);
-		free(time2);// time1 and time2 used temporarily
-		
-		if(!isTimeInTimeArray(time, timeArray, timeArrayIndex)) { // Check if the current time is unique
-			strcpy (timeArray[timeArrayIndex], time);
-			/*
-			printf("timeArray[timeArrayIndex]: %s\n", timeArray[timeArrayIndex]);
-			printf("timeArrayIndex: %d\n", timeArrayIndex);
-			*/
-			timeArrayIndex++;
-		}
-		
-		Sat satObj = createSat(time, satName, az, el, snr);
-		satArray[satArrayIndex] = satObj; // Add each sat to sat array
 		
 		/*
-		printf("satArray[satArrayIndex].time: %s\t", satArray[satArrayIndex].time);
-		printf("satArray[satArrayIndex].satName: %s\t", satArray[satArrayIndex].satName);
-		printf("satArrayIndex: %d\n", satArrayIndex);
+			List of geostationary satellites as of 2021-10-12, available at https://qzss.go.jp/en/technical/satellites/index.html
+			This information should be updated by the user. 
+			New GNSS geostationary satellites may be launched in the future.
 		*/
-		satArrayIndex++;
+		#define GEOSATLISTINDEX 15 // number of geostationary satellite listed
+		char* geoSatList[GEOSATLISTINDEX] = {"I03", "I06", "I07", "199", "189", "197", "137", "C04", "C05", "C02", "C03", "C59", "C01", "C60", "C61"};
+		
+		if (!isStrInArray(satName, geoSatList, GEOSATLISTINDEX)) {// if sat is geostationary, skip
+			char* time = concat(time1, time2);
+			if (time == NULL)
+				exit(-1);//failed to allocate memory in concat() above
+			
+			if(!isStrInArray(time, timeArray, timeArrayIndex)) { // Check if the current time is unique
+				strcpy (timeArray[timeArrayIndex], time);
+				/*
+				printf("timeArray[timeArrayIndex]: %s\n", timeArray[timeArrayIndex]);
+				printf("timeArrayIndex: %d\n", timeArrayIndex);
+				*/
+				timeArrayIndex++;
+			}
+			
+			Sat satObj = createSat(time, satName, az, el, snr);
+			satArray[satArrayIndex] = satObj; // Add each sat to sat array
+			
+			/*
+			printf("satArray[satArrayIndex].time: %s\t", satArray[satArrayIndex].time);
+			printf("satArray[satArrayIndex].satName: %s\t", satArray[satArrayIndex].satName);
+			printf("satArrayIndex: %d\n", satArrayIndex);
+			*/
+			satArrayIndex++;
+		}
+		
+		free(time1);
+		free(time2);// time1 and time2 used temporarily
 	}
 	
 	/*
@@ -237,7 +262,7 @@ int main (void) {
 		Epoch epochObj = createEpoch(timeArray[i], epochSatArray, epochSatArrayIndex); //numSat initially 0
 		epochArray[i] = epochObj;
 	}
-	//printEpochArray(epochArray, timeArrayIndex);
+	printEpochArray(epochArray, timeArrayIndex);
 	
 	/*
 		SNR method calculations
@@ -269,7 +294,7 @@ int main (void) {
 	*/
 	for (int i = 0; i < timeArrayIndex; i++) {
 		normalizeXyz(xyzSol[i]);
-		printf("epoch = %s || antenna boresight unit vector (x, y, z) = (%lf, %lf, %lf)\n", epochArray[i].time, xyzSol[i][0], xyzSol[i][1], xyzSol[i][2]);
+		//printf("epoch = %s || # of Sat = %i || antenna vector = %lf %lf %lf\n", epochArray[i].time, epochArray[i].numSat, xyzSol[i][0], xyzSol[i][1], xyzSol[i][2]);
 	}
 	
 	/*
@@ -278,7 +303,7 @@ int main (void) {
 	double aeSol[timeArrayIndex][2]; // ae solution array
 	for (int i = 0; i < timeArrayIndex; i++) {
 		xyz2ae(xyzSol[i][0], xyzSol[i][1], xyzSol[i][2], aeSol[i]);
-		printf("epoch = %s || antenna boresight azimuth and elevation angle in degrees (az, el) = (%lf, %lf)\n", epochArray[i].time, aeSol[i][0], aeSol[i][1]);
+		printf("epoch = %s || # of Sat = %i || antenna az & el in deg = %lf %lf\n", epochArray[i].time, epochArray[i].numSat, aeSol[i][0], aeSol[i][1]);
 	}
 	
 	
