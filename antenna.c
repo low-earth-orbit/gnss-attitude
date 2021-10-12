@@ -2,32 +2,23 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "convert.h" // Coordinate transformation methods/*
-
-/*
-天地玄黃宇宙洪荒日月盈昃辰宿列張
-*/
-
+#include "convert.h" // Coordinate transformation methods
 /*
 
-Notes for users of this program: 
+Notes for users of this program:
 1. Modify the input file information, if necessary
 2. Recommended elevation cutoff angle = 0
-3. Do a sanity check for the input file. Input file should closely assemble input_example.txt. Input file should not contain the following:
+3. Do a sanity check for the input file. Input file should closely resemble input_example.txt. Input file should not contain the following:
 	a. SBAS satellites (unselect this option in RTKLIB),
 	b. Satellites without azimuth-elevation information, or
 	c. Geostationary satellites
-4. Update the list of geostationary satellites: char* geoSatList[GEOSATLISTINDEX] (This list includes geo sats up to 2021-10-12)
-5. To compile
-	gcc antenna.c convert.c -lm -o antenna
+4. If new geostationary GNSS satellites have been launched since 2021-08-31, update the list of geostationary satellites: char* geoSatList[GEOSATLISTINDEX]
+5. To compile: gcc antenna.c convert.c -lm -o antenna
 	
 */
 
-
-/*
-	Input file information
-*/
-#define INPUT_FILE_PATH "input.txt"
+/* Input file information */
+#define INPUT_FILE_PATH "input_example.txt"
 #define MAX_NUM_EPOCHES 86400 // Default value good for 24h 1Hz data
 #define MAX_NUM_SAT_EPOCH 100 // maximum number of satellites visible in an epoch
 #define MAX_NUM_SIGNALS MAX_NUM_EPOCHES*MAX_NUM_SAT_EPOCH
@@ -124,7 +115,7 @@ int main (void) {
 	char** timeArray; // A time array storing all unique times
 	Sat* satArray; // A sat array storing all satellite signals
 	Epoch* epochArray; // A epoch array storing all epoches
-	
+
 	timeArray = (char**)malloc(MAX_NUM_EPOCHES*sizeof(char*));
 	if (timeArray == NULL) {
 		fprintf(stderr, "malloc() failed for creating timeArray\n");
@@ -197,7 +188,7 @@ int main (void) {
 		sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, satName, &az, &el, &snr);
 		
 		/*
-			List of geostationary satellites as of 2021-10-12, available at https://qzss.go.jp/en/technical/satellites/index.html
+			List of geostationary satellites as of 2021-08-31, available at https://qzss.go.jp/en/technical/satellites/index.html
 			This information should be updated by the user. 
 			New GNSS geostationary satellites may be launched in the future.
 		*/
@@ -262,10 +253,10 @@ int main (void) {
 		Epoch epochObj = createEpoch(timeArray[i], epochSatArray, epochSatArrayIndex); //numSat initially 0
 		epochArray[i] = epochObj;
 	}
-	printEpochArray(epochArray, timeArrayIndex);
+	//printEpochArray(epochArray, timeArrayIndex);
 	
 	/*
-		SNR method calculations
+		Implement SNR method
 	*/
 	double xyz[timeArrayIndex][MAX_NUM_SAT_EPOCH][3];
 	double xyzSol[timeArrayIndex][3]; // xyz solution array
