@@ -44,7 +44,7 @@ void ae2xyz (double az_deg, double el_deg, double *xyz){
 	xyz[2] = z;
 }
 /*
-	Input x, y, z (ECEF) coordinates or a 3d directional vector
+	Input x, y, z local coordinates
 		The vector can be of unit or non-unit length
 	Output azimuth and elevation angle in degrees
 */
