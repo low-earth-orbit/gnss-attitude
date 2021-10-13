@@ -17,7 +17,7 @@ double rad2deg (double rad) {
 }
 
 /*
-	Convert x y z directional vector to a unit vector
+	Convert (x, y, z) directional vector in local coordinates to a unit vector
 */
 void normalizeXyz (double *xyz) {
 	double len = sqrt(xyz[0]*xyz[0] + xyz[1]*xyz[1] + xyz[1]*xyz[1]);
@@ -30,7 +30,7 @@ void normalizeXyz (double *xyz) {
 
 /*
 	Input azimuth and elevation in degrees
-	Ouput array of the resulting UNIT vector (x, y, z)
+	Ouput array of the resulting UNIT vector (x, y, z) in local coordinates
 */
 void ae2xyz (double az_deg, double el_deg, double *xyz){
 	double az = deg2rad(az_deg);
@@ -44,7 +44,7 @@ void ae2xyz (double az_deg, double el_deg, double *xyz){
 	xyz[2] = z;
 }
 /*
-	Input x, y, z local coordinates
+	Input x, y, z local coordinates known as E(x) N(y) U(x)
 		The vector can be of unit or non-unit length
 	Output azimuth and elevation angle in degrees
 */
