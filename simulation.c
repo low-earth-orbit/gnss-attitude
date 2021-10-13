@@ -16,7 +16,7 @@ To compile: gcc simulation.c convert.c -lm -o simulation
 */
 
 /*
-	Generate points visible by the antenna, which are antenna boresight angle dependent. This function assumes antenna azimuth = 180 deg. That is pointing to negative y (northing).
+	Generate points visible by the antenna, which are antenna boresight angle dependent. This function assumes antenna azimuth = 180 deg. That is pointing to negative y (northing). Reference: https://mathworld.wolfram.com/SpherePointPicking.html
 	
 		points[][5]: points array
 		
@@ -27,17 +27,14 @@ To compile: gcc simulation.c convert.c -lm -o simulation
 		returns: number of visible points
 	
 */
-/*
-	Currently this way is not really ramdonly uniform distributed. Greater point density around pole location
-*/
 int rpVisSat (double points[][5], int n, double antEl)
 {
 	int numVisPt = 0;
 	double theta, phi, x, y, z, c;
 	double azel[2];
 	for (int i = 1; i < n; i ++){
-		theta = 2 * M_PI * (double)rand() / (double)RAND_MAX;
-		phi = M_PI *((double)rand() / (double)RAND_MAX);
+		theta = 2.0 * M_PI * (double)rand() / (double)RAND_MAX;
+		phi = acos(2.0 * (double)rand() / (double)RAND_MAX -1);
 		x = sin(phi)*cos(theta);
 		y = sin(phi)*sin(theta);
 		z = cos(phi); // Treat this as local coordinates xyz
@@ -59,7 +56,7 @@ int rpVisSat (double points[][5], int n, double antEl)
 int main (void) {
 	int numPt = 10000;
 	double visPoints[numPt][5];
-	int numVisPt = rpVisSat(visPoints, numPt, 45);
+	int numVisPt = rpVisSat(visPoints, numPt, 60);
 	for (int i = 1; i < numVisPt; i ++){
 		//printf("xyz = %lf, %lf, %lf || azel = %lf, %lf\n", visPoints[i][0], visPoints[i][1], visPoints[i][2], visPoints[i][3], visPoints[i][4]);
 		printf("%lf %lf %lf\n", visPoints[i][0], visPoints[i][1], visPoints[i][2]);
