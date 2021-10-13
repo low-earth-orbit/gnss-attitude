@@ -49,9 +49,9 @@ void ae2xyz (double az_deg, double el_deg, double *xyz){
 	Output azimuth and elevation angle in degrees
 */
 void xyz2ae (double x, double y, double z, double* azel){
-	double r = sqrt(x*x + y*y);
+	double r = sqrt(x*x + y*y + z*z);
 	double az = atan(x/y);
-	double el = atan(z/r);
+	double el = asin(z/r);
 	/* adjust for quadrant */
 	if (y < 0.0)	az+= M_PI;
 	if (az < 0.0)	az+= 2*M_PI;
@@ -63,22 +63,26 @@ void xyz2ae (double x, double y, double z, double* azel){
 	
 }
 
-/*
 
+/*
 int main (void) {
 	
-	double az = 80;
-	double el = 60;
+	double x = 1;
+	double y = 2;
+	double z = 3;
+	double len = sqrt(x*x+y*y+z*z);
+	printf("x = %lf\ty = %lf\tz = %lf\t\n", x/len, y/len, z/len);
+	double array[2];
+	xyz2ae(x, y, z, array);
+	//printf("az = %lf\tel = %lf\n", array[0], array[1]);
+	
+	double az = array[0];
+	double el = array[1];
 	double vector[3];
 	ae2xyz(az, el, vector);
 	printf("x = %lf\ty = %lf\tz = %lf\t\n", vector[0], vector[1], vector[2]);
 	
-	double x = -1;
-	double y = sqrt(3);
-	double z = -1000;
-	double array[2];
-	xyz2ae(x, y, z, array);
-	printf("az = %lf\tel = %lf\n", array[0], array[1]);
+
 	exit(0);
 }
 */
