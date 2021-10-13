@@ -7,9 +7,13 @@
 #include "convert.h" // Coordinate transformation methods
 /*
 This program simulates the satellite-antenna geometry.
-	a. Only the satellites above Earth's horizon can be possibly seen regardless of the direction in which the antenna is pointing. This is true when the antenna is located on the Earth's surface.
-	b. Antenna can only receive signals from satellites above the antenna's horizon. This is typical for GNSS antennas receiving signals. Of course, the user may set a cutoff angle for post-processing.
-Therefore, there are two half spheres. When the antenna is pointing up at a 90 deg elevation angle, the two half spheres coincide. However, when the antenna is not at a 90 deg elevation angle only the area these two half-sphere overlap has visible GNSS satellites.
+
+a. Only the satellites above Earth's horizon can be possibly seen regardless of the direction in which the antenna is pointing. This is true when the antenna is located on or close to the Earth's surface. The user may set a cutoff angle for post-processing. Assume such angle is 0 here. Use all available satellites to estimate antenna orientation.
+
+b. Antenna can only receive signals from satellites above the antenna's horizon. This is typical for GNSS antennas receiving signals.
+
+Therefore, there are two half spheres. When the antenna is pointing up at a 90 deg elevation angle, the two half spheres coincide. However, when the antenna is not at a 90 deg elevation angle only the area these two half spheres overlap has visible GNSS satellites.
+
 The underlying assumption of this randomness simulation is that at a given moment, the satellites in the sky are randomly (i.e. uniformly) distributed.
 
 To compile: gcc simulation.c convert.c -lm -o simulation
