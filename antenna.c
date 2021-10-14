@@ -2,24 +2,27 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include "geosat.h" // Geostationary satellites
 #include "convert.h" // Coordinate transformation methods
 /*
 
 Notes for users of this program:
 1. Modify the input file information, if necessary
 2. Recommended elevation cutoff angle = 0
-3. Do a sanity check for the input file. Input file should closely resemble input_example.txt. Input file should not contain the following:
-	a. SBAS satellites (unselect this option in RTKLIB),
-	b. Satellites without azimuth-elevation information, or
-	c. Geostationary satellites
-4. If new geostationary GNSS satellites have been launched since 2021-08-31, update the list of geostationary satellites: char* geoSatList[GEOSATLISTINDEX]
+3. Do a sanity check for the input file. Input file should closely resemble "input_example.txt". Input file should not contain the following:
+	a. SBAS satellites (unselect this option in RTKLIB), or
+	b. Satellites without azimuth-elevation information
+4. If new geostationary GNSS satellites have been launched since 2021-08-31 and you choose to exclude these satellites, update the list of geostationary satellites in "geosat.h"
 5. To compile: gcc antenna.c convert.c -lm -o antenna
 	
 */
 
-/* Input file information */
+/* Edit input file information */
 #define INPUT_FILE_PATH "input_example.txt"
 #define MAX_NUM_EPOCHES 86400 // Default value good for 24h 1Hz data
+#define EXCLUDE_GEO_SAT false // for the SNR method, default is false: do not exclude geostationary satellites
+
+/* Usually no need to change*/
 #define MAX_NUM_SAT_EPOCH 100 // maximum number of satellites visible in an epoch
 #define MAX_NUM_SIGNALS MAX_NUM_EPOCHES*MAX_NUM_SAT_EPOCH
 #define MAX_NUM_CHAR_LINE 100 // num of char in each record or line
@@ -27,6 +30,7 @@ Notes for users of this program:
 #define NUM_CHAR_TIME 10
 #define NUM_CHAR_SAT 3
 #define NUM_CHAR_SAT_PRN 3
+
 
 typedef struct {
 	char* time; // GPS time
@@ -99,6 +103,7 @@ char* concat(const char* str1, const char* str2)
 	return str;
 }
 
+
 void printEpochArray(Epoch* epochArray, int numEpoch) {
  	for (int i = 0; i < numEpoch; i++) {
 		printf("======== Epoch %s contains %i satellites/signals ========\n", epochArray[i].time, epochArray[i].numSat);
@@ -107,7 +112,8 @@ void printEpochArray(Epoch* epochArray, int numEpoch) {
 		}
 	}
 }
-	
+
+
 int main (void) {
 	/*
 		create arrays
@@ -187,15 +193,7 @@ int main (void) {
 
 		sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, satName, &az, &el, &snr);
 		
-		/*
-			List of geostationary satellites as of 2021-08-31, available at https://qzss.go.jp/en/technical/satellites/index.html
-			This information should be updated by the user. 
-			New GNSS geostationary satellites may be launched in the future.
-		*/
-		#define GEOSATLISTINDEX 15 // number of geostationary satellite listed
-		char* geoSatList[GEOSATLISTINDEX] = {"I03", "I06", "I07", "199", "189", "197", "137", "C04", "C05", "C02", "C03", "C59", "C01", "C60", "C61"};
-		
-		if (!isStrInArray(satName, geoSatList, GEOSATLISTINDEX)) {// if sat is geostationary, skip
+		if (!EXCLUDE_GEO_SAT || !isStrInArray(satName, geoSatList, GEOSATLISTINDEX)) {// if sat is geostationary, skip
 			char* time = concat(time1, time2);
 			if (time == NULL)
 				exit(-1);//failed to allocate memory in concat() above
@@ -292,11 +290,13 @@ int main (void) {
 		from xyz solution derive azimuth-elevation solution
 	*/
 	double aeSol[timeArrayIndex][2]; // ae solution array
+	// print header of the output
+	printf("Epoch(GPST),#Sat,Az(deg),El(deg)\n");
 	for (int i = 0; i < timeArrayIndex; i++) {
 		xyz2ae(xyzSol[i][0], xyzSol[i][1], xyzSol[i][2], aeSol[i]);
-		printf("epoch = %s || # of Sat = %i || antenna az & el in deg = %lf %lf\n", epochArray[i].time, epochArray[i].numSat, aeSol[i][0], aeSol[i][1]);
+		// print each line
+		printf("%s,%i,%lf,%lf\n", epochArray[i].time, epochArray[i].numSat, aeSol[i][0], aeSol[i][1]);
 	}
-	
 	
 	/*
 		free()

@@ -17,7 +17,7 @@ double rad2deg (double rad) {
 }
 
 /*
-	Convert (x, y, z) directional vector in local coordinates to a unit vector
+	Convert (x, y, z) vector to a unit vector
 */
 void normalizeXyz (double *xyz) {
 	double len = sqrt(xyz[0]*xyz[0] + xyz[1]*xyz[1] + xyz[1]*xyz[1]);
@@ -30,7 +30,7 @@ void normalizeXyz (double *xyz) {
 
 /*
 	Input azimuth and elevation in degrees
-	Ouput array of the resulting UNIT vector (x, y, z) in local coordinates
+	Get array of the resulting UNIT vector (x, y, z)
 */
 void ae2xyz (double az_deg, double el_deg, double *xyz){
 	double az = deg2rad(az_deg);
@@ -38,11 +38,11 @@ void ae2xyz (double az_deg, double el_deg, double *xyz){
 	double x = cos(el)*sin(az);
 	double y = cos(el)*cos(az);
 	double z = sin(el);
-	//printf ("x = %lf\ty = %lf\tz = %lf\n", x, y, z);
 	xyz[0] = x;
 	xyz[1] = y;
 	xyz[2] = z;
 }
+
 /*
 	Input x, y, z local coordinates known as E(x) N(y) U(x)
 		The vector can be of unit or non-unit length
@@ -57,12 +57,10 @@ void xyz2ae (double x, double y, double z, double* azel){
 	if (az < 0.0)	az+= 2*M_PI;
 	double az_deg = rad2deg(az);
 	double el_deg = rad2deg(el);
-	//printf("az = %lf\tel = %lf\n", az_deg, el_deg);
 	azel[0] = az_deg;
 	azel[1] = el_deg;
 	
 }
-
 
 /*
 int main (void) {
@@ -82,7 +80,6 @@ int main (void) {
 	ae2xyz(az, el, vector);
 	printf("x = %lf\ty = %lf\tz = %lf\t\n", vector[0], vector[1], vector[2]);
 	
-
 	exit(0);
 }
 */
