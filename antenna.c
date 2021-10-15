@@ -7,7 +7,7 @@
 /*
 
 Information for users of this program:
-1. Modify the input file information, if necessary
+1. Modify the below configuration if necessary
 2. Recommended elevation cutoff angle = 0
 3. Do a sanity check for the input file. Input file should closely resemble "input_example.txt". Input file should not contain any of the following:
 	a. SBAS satellites (unselect this option in RTKLIB) because they're geostationary
@@ -17,7 +17,7 @@ Information for users of this program:
 	
 */
 
-/* Edit input file information */
+/* Configuration */
 #define INPUT_FILE_PATH "input_example.txt"
 #define MAX_NUM_EPOCHES 86400 // default value good for 24h 1Hz data
 
