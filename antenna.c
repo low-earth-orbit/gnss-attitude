@@ -19,17 +19,16 @@ Notes for users of this program:
 
 /* Edit input file information */
 #define INPUT_FILE_PATH "input_example.txt"
-#define MAX_NUM_EPOCHES 86400 // Default value good for 24h 1Hz data
-#define EXCLUDE_GEO_SAT false // for the SNR method, default is false: do not exclude geostationary satellites
+#define MAX_NUM_EPOCHES 86400 // default value good for 24h 1Hz data
 
 /* Usually no need to change*/
+#define EXCLUDE_GEO_SAT true // true: exclude geostationary satellites
 #define MAX_NUM_SAT_EPOCH 100 // maximum number of satellites visible in an epoch
 #define MAX_NUM_SIGNALS MAX_NUM_EPOCHES*MAX_NUM_SAT_EPOCH
 #define MAX_NUM_CHAR_LINE 100 // num of char in each record or line
 #define NUM_CHAR_DATE 10
 #define NUM_CHAR_TIME 10
 #define NUM_CHAR_SAT 3
-#define NUM_CHAR_SAT_PRN 3
 
 
 typedef struct {
@@ -42,7 +41,7 @@ typedef struct {
 
 typedef struct {
 	char* time;
-	Sat* satArray; // array of satellites with the same time
+	Sat* satArrayInEpoch; // array of satellites with the same time
 	int numSat;
 	// Sol* solutionArray;
 } Epoch;
@@ -57,10 +56,10 @@ Sat createSat(char* time, char* satName, double az, double el, double snr) {
 	return satObj;
 }
 
-Epoch createEpoch(char* time, Sat* satArray, int numSat) {
+Epoch createEpoch(char* time, Sat* satArrayInEpoch, int numSat) {
 	Epoch epochObj;
 	epochObj.time = time;
-	epochObj.satArray = satArray;
+	epochObj.satArrayInEpoch = satArrayInEpoch;
 	epochObj.numSat = numSat;
 	return epochObj;
 }
@@ -103,16 +102,14 @@ char* concat(const char* str1, const char* str2)
 	return str;
 }
 
-
 void printEpochArray(Epoch* epochArray, int numEpoch) {
  	for (int i = 0; i < numEpoch; i++) {
 		printf("======== Epoch %s contains %i satellites/signals ========\n", epochArray[i].time, epochArray[i].numSat);
 		for (int j = 0; j < epochArray[i].numSat; j++){
-			printf("%s\t%s\t%lf\t%lf\t%lf\n", epochArray[i].satArray[j].time, epochArray[i].satArray[j].satName, epochArray[i].satArray[j].az, epochArray[i].satArray[j].el, epochArray[i].satArray[j].snr);
+			printf("%s\t%s\t%lf\t%lf\t%lf\n", epochArray[i].satArrayInEpoch[j].time, epochArray[i].satArrayInEpoch[j].satName, epochArray[i].satArrayInEpoch[j].az, epochArray[i].satArrayInEpoch[j].el, epochArray[i].satArrayInEpoch[j].snr);
 		}
 	}
 }
-
 
 int main (void) {
 	/*
@@ -193,31 +190,29 @@ int main (void) {
 
 		sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, satName, &az, &el, &snr);
 		
-		if (!EXCLUDE_GEO_SAT || !isStrInArray(satName, geoSatList, GEOSATLISTINDEX)) {// if sat is geostationary, skip
-			char* time = concat(time1, time2);
-			if (time == NULL)
-				exit(-1);//failed to allocate memory in concat() above
-			
-			if(!isStrInArray(time, timeArray, timeArrayIndex)) { // Check if the current time is unique
-				strcpy (timeArray[timeArrayIndex], time);
-				/*
-				printf("timeArray[timeArrayIndex]: %s\n", timeArray[timeArrayIndex]);
-				printf("timeArrayIndex: %d\n", timeArrayIndex);
-				*/
-				timeArrayIndex++;
-			}
-			
-			Sat satObj = createSat(time, satName, az, el, snr);
-			satArray[satArrayIndex] = satObj; // Add each sat to sat array
-			
+		char* time = concat(time1, time2);
+		if (time == NULL)
+			exit(-1);//failed to allocate memory in concat() above
+		
+		if(!isStrInArray(time, timeArray, timeArrayIndex)) { // Check if the current time is unique
+			strcpy (timeArray[timeArrayIndex], time);
 			/*
-			printf("satArray[satArrayIndex].time: %s\t", satArray[satArrayIndex].time);
-			printf("satArray[satArrayIndex].satName: %s\t", satArray[satArrayIndex].satName);
-			printf("satArrayIndex: %d\n", satArrayIndex);
+			printf("timeArray[timeArrayIndex]: %s\n", timeArray[timeArrayIndex]);
+			printf("timeArrayIndex: %d\n", timeArrayIndex);
 			*/
-			satArrayIndex++;
+			timeArrayIndex++;
 		}
 		
+		Sat satObj = createSat(time, satName, az, el, snr);
+		satArray[satArrayIndex] = satObj; // Add each sat to sat array
+		
+		/*
+		printf("satArray[satArrayIndex].time: %s\t", satArray[satArrayIndex].time);
+		printf("satArray[satArrayIndex].satName: %s\t", satArray[satArrayIndex].satName);
+		printf("satArrayIndex: %d\n", satArrayIndex);
+		*/
+		satArrayIndex++;
+
 		free(time1);
 		free(time2);// time1 and time2 used temporarily
 	}
@@ -240,7 +235,7 @@ int main (void) {
 			exit(-1);
 		}
 		
-		int epochSatArrayIndex = 0;
+		int epochSatArrayIndex = 0; //num of sat in an epoch initially 0
 		for (int j = 0; j < satArrayIndex; j++){
 			//printf("%i %s %s\n", satArrayIndex, timeArray[i], satArray[j].time);
 			if (strcmp(timeArray[i], satArray[j].time)==0) {
@@ -248,55 +243,89 @@ int main (void) {
 				epochSatArrayIndex++;
 			}
 		}
-		Epoch epochObj = createEpoch(timeArray[i], epochSatArray, epochSatArrayIndex); //numSat initially 0
+		Epoch epochObj = createEpoch(timeArray[i], epochSatArray, epochSatArrayIndex); 
 		epochArray[i] = epochObj;
 	}
-	//printEpochArray(epochArray, timeArrayIndex);
+	//print lines read in by the program
+	printEpochArray(epochArray, timeArrayIndex);
 	
 	/*
 		Implement SNR method
+
+		For each epoch, form LoS vectors from az & el, weight them, then do a summation
 	*/
-	double xyz[timeArrayIndex][MAX_NUM_SAT_EPOCH][3];
-	double xyzSol[timeArrayIndex][3]; // xyz solution array
+	double xyzSnr[timeArrayIndex][MAX_NUM_SAT_EPOCH][3];
+	double xyzSnrSol[timeArrayIndex][3]; // xyz solution array
 	for (int i = 0; i < timeArrayIndex; i++) {
 		for (int j = 0; j < epochArray[i].numSat; j++){
 			/* get LOS vector */
-			ae2xyz(epochArray[i].satArray[j].az, epochArray[i].satArray[j].el, xyz[i][j]); 
-			//printf("epoch index = %i || sat index = %i || LOS vector (%lf, %lf %lf)\n", i, j, xyz[i][j][0], xyz[i][j][1], xyz[i][j][2]);
+			ae2xyz(epochArray[i].satArrayInEpoch[j].az, epochArray[i].satArrayInEpoch[j].el, xyzSnr[i][j]); 
+			//printf("epoch index = %i || sat index = %i || LOS vector (%lf, %lf %lf)\n", i, j, xyzSnr[i][j][0], xyzSnr[i][j][1], xyzSnr[i][j][2]);
 			
-			/* weight by snr */ 
-			xyz[i][j][0] *= epochArray[i].satArray[j].snr;
-			xyz[i][j][1] *= epochArray[i].satArray[j].snr; 
-			xyz[i][j][2] *= epochArray[i].satArray[j].snr;			
-			//printf("epoch index = %i || sat index = %i || weighted LOS vector (%lf, %lf %lf)\n", i, j, xyz[i][j][0], xyz[i][j][1], xyz[i][j][2]);
+			/* weight by snr */
+			xyzSnr[i][j][0] *= epochArray[i].satArrayInEpoch[j].snr;
+			xyzSnr[i][j][1] *= epochArray[i].satArrayInEpoch[j].snr; 
+			xyzSnr[i][j][2] *= epochArray[i].satArrayInEpoch[j].snr;			
+			//printf("epoch index = %i || sat index = %i || weighted LOS vector (%lf, %lf %lf)\n", i, j, xyzSnr[i][j][0], xyzSnr[i][j][1], xyzSnr[i][j][2]);
 			
 			/* add to sum*/
-			xyzSol[i][0] += xyz[i][j][0];
-			xyzSol[i][1] += xyz[i][j][1]; 
-			xyzSol[i][2] += xyz[i][j][2];
-			//printf("epoch index = %i || sat index = %i || Accumulated sum of weighted LOS vector (%lf, %lf %lf)\n", i, j, xyzSol[i][0], xyzSol[i][1], xyzSol[i][2]);
+			xyzSnrSol[i][0] += xyzSnr[i][j][0];
+			xyzSnrSol[i][1] += xyzSnr[i][j][1]; 
+			xyzSnrSol[i][2] += xyzSnr[i][j][2];
+			//printf("epoch index = %i || sat index = %i || Accumulated sum of weighted LOS vector (%lf, %lf %lf)\n", i, j, xyzSnrSol[i][0], xyzSnrSol[i][1], xyzSnrSol[i][2]);
 		}
 	}
 	
-	/*
-		convert the sum to unit vector, finish xyz solution
-	*/
+	/* convert the sum to unit vector, finish snr method's xyz solution*/
 	for (int i = 0; i < timeArrayIndex; i++) {
-		normalizeXyz(xyzSol[i]);
-		//printf("epoch = %s || # of Sat = %i || antenna vector = %lf %lf %lf\n", epochArray[i].time, epochArray[i].numSat, xyzSol[i][0], xyzSol[i][1], xyzSol[i][2]);
+		normalizeXyz(xyzSnrSol[i]);
+		//printf("epoch = %s || # of Sat = %i || antenna vector = %lf %lf %lf\n", epochArray[i].time, epochArray[i].numSat, xyzSnrSol[i][0], xyzSnrSol[i][1], xyzSnrSol[i][2]);
 	}
 	
-	/*
+	/* 
 		from xyz solution derive azimuth-elevation solution
 	*/
-	double aeSol[timeArrayIndex][2]; // ae solution array
+	double aeSnrSol[timeArrayIndex][2]; // ae solution array
 	// print header of the output
 	printf("Epoch(GPST),#Sat,Az(deg),El(deg)\n");
 	for (int i = 0; i < timeArrayIndex; i++) {
-		xyz2ae(xyzSol[i][0], xyzSol[i][1], xyzSol[i][2], aeSol[i]);
-		// print each line
-		printf("%s,%i,%lf,%lf\n", epochArray[i].time, epochArray[i].numSat, aeSol[i][0], aeSol[i][1]);
+		xyz2ae(xyzSnrSol[i][0], xyzSnrSol[i][1], xyzSnrSol[i][2], aeSnrSol[i]);
+		// print SNR method result
+		printf("%s,%i,%lf,%lf\n", epochArray[i].time, epochArray[i].numSat, aeSnrSol[i][0], aeSnrSol[i][1]);
 	}
+	//End of SNR method
+	
+	/*
+		Implement MY method
+
+		1. Geostationary satellite exclusion to be implemented
+			if (!EXCLUDE_GEO_SAT || !isStrInArray(satName, geoSatList, GEOSATLISTINDEX))	
+		2. Uniformity test to be implemented 
+	*/
+	printf("======================================================\n");	
+	// print header of the output
+	printf("Epoch(GPST),#Sat,Az(deg),El(deg)\n");
+	
+	double aeSol[timeArrayIndex][2]; // ae solution array
+	for (int i = 0; i < timeArrayIndex; i++) {
+		if (epochArray[i].numSat == 0) {
+			aeSol[i][0] = -1000; // Undeterminable
+			//aeSol[i][1] = -1090; // Undeterminable or -90 deg
+		}
+		else if (epochArray[i].numSat == 1) {
+			aeSol[i][0] = epochArray[i].satArrayInEpoch[0].az;
+		}
+		else {
+			double azArray[epochArray[i].numSat];
+			for (int j = 0; j < epochArray[i].numSat; j++){
+				azArray[j] = epochArray[i].satArrayInEpoch[j].az;
+				//printf("Epoch = %i || numSat = %i || j = %i || az = %lf\n", i, epochArray[i].numSat, j, epochArray[i].satArrayInEpoch[j].az);
+			}
+			aeSol[i][0] = meanAz(azArray, epochArray[i].numSat);
+			meanAz(azArray, epochArray[i].numSat);
+		}
+		printf("%s,%i,%lf\n", epochArray[i].time, epochArray[i].numSat, aeSol[i][0]);
+	}// end of MY method
 	
 	/*
 		free()
@@ -316,8 +345,8 @@ int main (void) {
 	}
 	free(satArray);
 
-  	for (int i = 0; i < MAX_NUM_EPOCHES; i++)
-		free(epochArray[i].satArray);
+	for (int i = 0; i < MAX_NUM_EPOCHES; i++)
+		free(epochArray[i].satArrayInEpoch);
 	free(epochArray);
 	
 	/*

@@ -53,13 +53,36 @@ void xyz2ae (double x, double y, double z, double* azel){
 	double az = atan(x/y);
 	double el = asin(z/r);
 	/* adjust for quadrant */
-	if (y < 0.0)	az+= M_PI;
-	if (az < 0.0)	az+= 2*M_PI;
+	if (y < 0.0)	az += M_PI;
+	if (az < 0.0)	az += 2*M_PI;
 	double az_deg = rad2deg(az);
 	double el_deg = rad2deg(el);
 	azel[0] = az_deg;
 	azel[1] = el_deg;
 	
+}
+
+/*
+	Calculate circular mean (azimuth)
+*/
+double meanAz (double array[], int n){
+	if (n == 1)	return array[0];
+	double mean, x, y, r;
+	x = 0.0;
+	y = 0.0;
+	r = 0.0;
+	for (int i = 0; i < n; i++){
+		y += cos(deg2rad(array[i]));
+		x += sin(deg2rad(array[i]));
+	}
+	y /= (double)n;
+	x /= (double)n;
+	r = sqrt(x*x + y*y); // keep this in mind. can be used for uniformity test.
+	mean = atan(x/y);
+	/* adjust for quadrant*/
+	if (y < 0.0)	mean += M_PI;
+	if (mean < 0.0)	mean += 2*M_PI;
+	return rad2deg(mean);
 }
 
 /*
