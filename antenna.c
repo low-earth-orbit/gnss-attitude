@@ -6,13 +6,13 @@
 #include "convert.h" // Coordinate transformation methods
 /*
 
-Notes for users of this program:
+Information for users of this program:
 1. Modify the input file information, if necessary
 2. Recommended elevation cutoff angle = 0
-3. Do a sanity check for the input file. Input file should closely resemble "input_example.txt". Input file should not contain the following:
-	a. SBAS satellites (unselect this option in RTKLIB), or
-	b. Satellites without azimuth-elevation information
-4. If new geostationary GNSS satellites have been launched since 2021-08-31 and you choose to exclude these satellites, update the list of geostationary satellites in "geosat.h"
+3. Do a sanity check for the input file. Input file should closely resemble "input_example.txt". Input file should not contain any of the following:
+	a. SBAS satellites (unselect this option in RTKLIB) because they're geostationary
+	b. Satellites without azimuth & elevation information
+4. The program automatically filter out geostationary satellites. Non-geostationary geosynchronous satellites are still kept. If new geostationary GNSS satellites have been launched since 2021-08-31, update the list of geostationary satellites in "geosat.h". This list does not include SBAS satellites, unless added by you.
 5. To compile: gcc antenna.c convert.c -lm -o antenna
 	
 */
