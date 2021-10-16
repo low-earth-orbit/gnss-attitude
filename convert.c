@@ -86,6 +86,15 @@ double meanAz (double array[], int n){
 }
 
 /*
+	Calculate spherical distance (great-circle distance) between two points on UNIT sphere.
+	The output is the distance, also the angular distance in rad if the two points are on UNIT sphere.
+*/
+double spDist(double a1, double a2, double a3, double b1, double b2, double b3){
+	//printf("a1 a2 a3 = %lf %lf %lf \t b1 b2 b3 = %lf %lf %lf \n", a1, a2, a3, b1, b2, b3);
+	return acos(a1*b1 + a2*b2 + a3*b3);
+}
+
+/*
 int main (void) {
 	
 	double x = 1;
