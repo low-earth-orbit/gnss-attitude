@@ -13,13 +13,16 @@ Information for users of this program:
 	a. SBAS satellites (unselect this option in RTKLIB) because they're geostationary
 	b. Satellites without azimuth & elevation information
 4. The program automatically filter out geostationary satellites. Non-geostationary geosynchronous satellites are still kept. If new geostationary GNSS satellites have been launched since 2021-08-31, update the list of geostationary satellites in "geosat.h". This list does not include SBAS satellites, unless added by you.
-5. To compile: gcc antenna.c convert.c -lm -o antenna
+
+
+gcc antenna.c convert.c -lm -o antenna
+./antenna > output.txt
 	
 */
 
 /* Configuration */
-#define INPUT_FILE_PATH "input_example.txt"
-#define MAX_NUM_EPOCHES 86400 // default value good for 24h 1Hz data
+#define INPUT_FILE_PATH "input.txt"
+#define MAX_NUM_EPOCHES 86400 // default value good for 24h 1Hz data. may still be constraint by the compiler
 
 /* Usually no need to change*/
 #define EXCLUDE_GEO_SAT true // true: exclude geostationary satellites
@@ -247,7 +250,7 @@ int main (void) {
 		epochArray[i] = epochObj;
 	}
 	//print lines read in by the program
-	printEpochArray(epochArray, timeArrayIndex);
+	//printEpochArray(epochArray, timeArrayIndex);
 	
 	/*
 		Implement SNR method
@@ -287,7 +290,7 @@ int main (void) {
 	*/
 	double aeSnrSol[timeArrayIndex][2]; // ae solution array
 	// print header of the output
-	printf("Epoch(GPST),#Sat,Az(deg),El(deg)\n");
+	printf("================== SNR method ============================= \nEpoch(GPST),#Sat,Az(deg),El(deg)\n");
 	for (int i = 0; i < timeArrayIndex; i++) {
 		xyz2ae(xyzSnrSol[i][0], xyzSnrSol[i][1], xyzSnrSol[i][2], aeSnrSol[i]);
 		// print SNR method result
@@ -302,7 +305,7 @@ int main (void) {
 			if (!EXCLUDE_GEO_SAT || !isStrInArray(satName, geoSatList, GEOSATLISTINDEX))	
 		2. Uniformity test to be implemented 
 	*/
-	printf("======================================================\n");	
+	printf("================== Novel method =============================\n");	
 	// print header of the output
 	printf("Epoch(GPST),#Sat,Az(deg),El(deg)\n");
 	
