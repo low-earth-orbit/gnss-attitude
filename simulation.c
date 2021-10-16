@@ -16,7 +16,8 @@ Therefore, there are two hemispheres. When the antenna is pointing up at a 90 de
 
 The underlying assumption of this simulation is that GNSS satellites are randomly distributed on the celestial sphere.
 
-To compile: gcc simulation.c convert.c -lm -o simulation
+gcc simulation.c convert.c -lm -o simulation
+./simulation > input.txt
 */
 
 /*
@@ -38,6 +39,7 @@ typedef struct {
 	double z;// x (E), y(N), z(U) in local coordinates
 	double az;
 	double el;
+	double snr;
 } SimuSat; // simulated satellite
 
 
@@ -61,6 +63,7 @@ int rpVisSat (SimuSat* sat, int n, double antEl)
 			sat[numVisPt].z = z;
 			sat[numVisPt].az = azel[0];
 			sat[numVisPt].el= azel[1];
+			sat[numVisPt].snr = 0;// snr will be updated in main()
 			numVisPt++;
 		}
 	}
@@ -68,14 +71,17 @@ int rpVisSat (SimuSat* sat, int n, double antEl)
 }
 
 int main (void) {
-	int antEl = 45; // antenna boresight elevation angle
-	//While elevation angle is adjustable, antenna azimuth is simulated at 180 deg by rpVisSat()
-	
+	int antEl = 60; // Antenna boresight elevation angle
+	// While elevation angle is adjustable, antenna azimuth is simulated at 180 deg by rpVisSat()
+	// Boresight vector is (0, -cos(antEl), sin(antEl))
 	int numEpoch = 1000; // number of simulated epoch
 	int numSat = 100; // number of GNSS satellites globally available
+	const double MAX_SNR = 50;
+	const double MIN_SNR = 20;// Set max and min snr values for snr computation. Assume linear relationship between SNR and (off-)boresight angle
 	
-	printf("SIMULATED INPUT FILE || \"SIMUEPOCH#\" \"TIME\"Epoch# \"SAT\" AZ EL \"20\" SAT#\n");// print header 
-	
+	double spd, snr;
+	int numVisPt;
+	printf("SIMULATED INPUT FILE || \"SIMUEPOCH#\" \"TIME\"Epoch# \"SAT\" AZ EL SNR SAT#\n");// print header 	
 	for (int i=0; i<numEpoch; i++){ // one simulation per loop 
 		
 		SimuSat* visSat = (SimuSat*)malloc(numSat*sizeof(SimuSat));
@@ -84,12 +90,19 @@ int main (void) {
 			exit(-1);
 		}
 		srand(time(0)+i);// set seed for rand()
-		int numVisPt = rpVisSat(visSat, numSat, antEl);
+		numVisPt = rpVisSat(visSat, numSat, antEl);
 		if (numVisPt !=0){
 			for (int j = 0; j < numVisPt; j ++){
-				printf("SIMUEPOCH# TIME%06d SAT %lf %lf 20 %i\n", i, visSat[j].az, visSat[j].el, j); // for output 
-				//printf("xyz = %lf, %lf, %lf || azel = %lf, %lf\n", visSat[j].x, visSat[j].y, visSat[j].z, visSat[j].az, visSat[j].el); // for check
+				/* compute SNR*/
+				spd = spDist(visSat[j].x, visSat[j].y, visSat[j].z, 0, -cos(deg2rad(antEl)), sin(deg2rad(antEl)));
+				snr = MAX_SNR - ( (M_PI*0.5 - spd) / (0.5*M_PI))*(MAX_SNR - MIN_SNR);
+				visSat[j].snr = snr;
+				/*
+					print
+				*/
+				//printf("xyz = %lf, %lf, %lf || azel = %lf, %lf || snr = %lf\n", visSat[j].x, visSat[j].y, visSat[j].z, visSat[j].az, visSat[j].el, visSat[j].snr); // for check
 				//printf("%lf %lf %lf\n", visSat[j].x, visSat[j].y, visSat[j].z);// for plot
+				printf("SIMUEPOCH# TIME%06d SAT %lf %lf %lf %i\n", i, visSat[j].az, visSat[j].el, visSat[j].snr, j); // for output as input file
 			}
 		}
 		
