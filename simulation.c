@@ -55,16 +55,30 @@ int rpVisSat (SimuSat* sat, int n, double antEl)
 		y = sin(phi)*sin(theta);
 		z = cos(phi); // Treat this as local coordinates xyz
 		xyz2ae (x, y, z, azel);
-		c = tan(deg2rad(antEl));
+		
 		// if in visible area, record the point
-		if ((z > 0) && (-y + c*z > 0)) {
-			sat[numVisPt].x = x;
-			sat[numVisPt].y = y;
-			sat[numVisPt].z = z;
-			sat[numVisPt].az = azel[0];
-			sat[numVisPt].el= azel[1];
-			sat[numVisPt].snr = 0;// snr will be updated in main()
-			numVisPt++;
+		if (z > 0){
+			if (antEl == 90){
+				sat[numVisPt].x = x;
+				sat[numVisPt].y = y;
+				sat[numVisPt].z = z;
+				sat[numVisPt].az = azel[0];
+				sat[numVisPt].el= azel[1];
+				sat[numVisPt].snr = 0;// snr will be updated in main()
+				numVisPt++;
+			} // catch tan(pi/2) situation 
+			else {
+				c = tan(deg2rad(antEl));
+				if (-y + c*z > 0) {
+					sat[numVisPt].x = x;
+					sat[numVisPt].y = y;
+					sat[numVisPt].z = z;
+					sat[numVisPt].az = azel[0];
+					sat[numVisPt].el= azel[1];
+					sat[numVisPt].snr = 0;// snr will be updated in main()
+					numVisPt++;
+				}
+			}
 		}
 	}
 	return numVisPt;
@@ -77,11 +91,11 @@ int main (void) {
 	int numEpoch = 1000; // number of simulated epoch
 	int numSat = 100; // number of GNSS satellites globally available
 	const double MAX_SNR = 50;
-	const double MIN_SNR = 20;// Set max and min snr values for snr computation. Assume quadratic relationrelationship between SNR and (off-)boresight angle
+	const double MIN_SNR = 30;// Set max and min snr values for snr computation. Assume quadratic relationship between SNR and (off-)boresight angle
 	
 	double spd, snr;
 	int numVisPt;
-	//printf("SIMULATED INPUT FILE || \"SIMUEPOCH#\" \"TIME\"Epoch# \"SAT\" AZ EL SNR SAT#\n");// print header 	
+	printf("SIMULATED INPUT FILE || \"SIMUEPOCH#\" \"TIME\"Epoch# \"SAT\" AZ EL SNR SAT#\n");// print header 	
 	for (int i=0; i<numEpoch; i++){ // one simulation per loop 
 		
 		SimuSat* visSat = (SimuSat*)malloc(numSat*sizeof(SimuSat));
@@ -96,15 +110,16 @@ int main (void) {
 				/* compute SNR*/
 				spd = spDist(visSat[j].x, visSat[j].y, visSat[j].z, 0, -cos(deg2rad(antEl)), sin(deg2rad(antEl)));
 				snr = ((MIN_SNR - MAX_SNR)/8100 )*pow(rad2deg(spd),2) + 50; // quadratic
-				//printf("%lf %lf\n", rad2deg(spd), snr);
 				//snr = MAX_SNR - ( (M_PI*0.5 - spd) / (0.5*M_PI))*(MAX_SNR - MIN_SNR); // linear 
+				//printf("%lf %lf\n", rad2deg(spd), snr);
 				visSat[j].snr = snr;
 				/*
 					print
 				*/
 				//printf("xyz = %lf, %lf, %lf || azel = %lf, %lf || snr = %lf\n", visSat[j].x, visSat[j].y, visSat[j].z, visSat[j].az, visSat[j].el, visSat[j].snr); // for check
 				//printf("%lf %lf %lf\n", visSat[j].x, visSat[j].y, visSat[j].z);// for plot
-				//printf("SIMUEPOCH# TIME%06d SAT %lf %lf %lf %i\n", i, visSat[j].az, visSat[j].el, visSat[j].snr, j); // for output as input file
+				//printf("%lf %lf\n", visSat[j].az, visSat[j].el);// az, el for plot
+				printf("SIMUEPOCH# TIME%06d SAT %lf %lf %lf %i\n", i, visSat[j].az, visSat[j].el, visSat[j].snr, j); // for output as input file
 			}
 		}
 		
