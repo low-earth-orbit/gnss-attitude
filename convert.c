@@ -49,16 +49,25 @@ void ae2xyz (double az_deg, double el_deg, double *xyz){
 	Output azimuth and elevation angle in degrees
 */
 void xyz2ae (double x, double y, double z, double* azel){
+	double az, el;
 	double r = sqrt(x*x + y*y + z*z);
-	double az = atan(x/y);
-	double el = asin(z/r);
-	/* adjust for quadrant */
-	if (y < 0.0)	az += M_PI;
-	if (az < 0.0)	az += 2*M_PI;
-	double az_deg = rad2deg(az);
-	double el_deg = rad2deg(el);
-	azel[0] = az_deg;
-	azel[1] = el_deg;
+	if (y==0){ // catch y=0
+		az = 90;
+	}
+	else if (x/y == M_PI/2) { // catch tan(pi/2)
+		az = -999;//undefined
+	} 
+	else {
+		az = atan(x/y);
+		/* adjust for quadrant */
+		if (y < 0.0)	az += M_PI;
+		if (az < 0.0)	az += 2*M_PI;
+		az = rad2deg(az);
+	}
+	el = asin(z/r); // r should not be 0
+	el = rad2deg(el);
+	azel[0] = az;
+	azel[1] = el;
 	
 }
 
@@ -78,6 +87,8 @@ double meanAz (double array[], int n){
 	y /= (double)n;
 	x /= (double)n;
 	r = sqrt(x*x + y*y); // keep this in mind. can be used for uniformity test.
+	if (x/y == M_PI/2)
+		return -999;
 	mean = atan(x/y);
 	/* adjust for quadrant*/
 	if (y < 0.0)	mean += M_PI;
