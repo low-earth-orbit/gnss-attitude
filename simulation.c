@@ -71,17 +71,17 @@ int rpVisSat (SimuSat* sat, int n, double antEl)
 }
 
 int main (void) {
-	int antEl = 60; // Antenna boresight elevation angle
+	int antEl = 90; // Antenna boresight elevation angle
 	// While elevation angle is adjustable, antenna azimuth is simulated at 180 deg by rpVisSat()
 	// Boresight vector is (0, -cos(antEl), sin(antEl))
 	int numEpoch = 1000; // number of simulated epoch
 	int numSat = 100; // number of GNSS satellites globally available
 	const double MAX_SNR = 50;
-	const double MIN_SNR = 20;// Set max and min snr values for snr computation. Assume linear relationship between SNR and (off-)boresight angle
+	const double MIN_SNR = 20;// Set max and min snr values for snr computation. Assume quadratic relationrelationship between SNR and (off-)boresight angle
 	
 	double spd, snr;
 	int numVisPt;
-	printf("SIMULATED INPUT FILE || \"SIMUEPOCH#\" \"TIME\"Epoch# \"SAT\" AZ EL SNR SAT#\n");// print header 	
+	//printf("SIMULATED INPUT FILE || \"SIMUEPOCH#\" \"TIME\"Epoch# \"SAT\" AZ EL SNR SAT#\n");// print header 	
 	for (int i=0; i<numEpoch; i++){ // one simulation per loop 
 		
 		SimuSat* visSat = (SimuSat*)malloc(numSat*sizeof(SimuSat));
@@ -95,14 +95,16 @@ int main (void) {
 			for (int j = 0; j < numVisPt; j ++){
 				/* compute SNR*/
 				spd = spDist(visSat[j].x, visSat[j].y, visSat[j].z, 0, -cos(deg2rad(antEl)), sin(deg2rad(antEl)));
-				snr = MAX_SNR - ( (M_PI*0.5 - spd) / (0.5*M_PI))*(MAX_SNR - MIN_SNR);
+				snr = ((MIN_SNR - MAX_SNR)/8100 )*pow(rad2deg(spd),2) + 50; // quadratic
+				//printf("%lf %lf\n", rad2deg(spd), snr);
+				//snr = MAX_SNR - ( (M_PI*0.5 - spd) / (0.5*M_PI))*(MAX_SNR - MIN_SNR); // linear 
 				visSat[j].snr = snr;
 				/*
 					print
 				*/
 				//printf("xyz = %lf, %lf, %lf || azel = %lf, %lf || snr = %lf\n", visSat[j].x, visSat[j].y, visSat[j].z, visSat[j].az, visSat[j].el, visSat[j].snr); // for check
 				//printf("%lf %lf %lf\n", visSat[j].x, visSat[j].y, visSat[j].z);// for plot
-				printf("SIMUEPOCH# TIME%06d SAT %lf %lf %lf %i\n", i, visSat[j].az, visSat[j].el, visSat[j].snr, j); // for output as input file
+				//printf("SIMUEPOCH# TIME%06d SAT %lf %lf %lf %i\n", i, visSat[j].az, visSat[j].el, visSat[j].snr, j); // for output as input file
 			}
 		}
 		
