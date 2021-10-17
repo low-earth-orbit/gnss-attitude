@@ -17,12 +17,11 @@ Information for users of this program:
 
 gcc antenna.c convert.c -lm -o antenna
 ./antenna > output.txt
-	
 */
 
 /* Configuration */
 #define INPUT_FILE_PATH "input.txt"
-#define MAX_NUM_EPOCHES 86400 // default value good for 24h 1Hz data. may still be constraint by the compiler
+#define MAX_NUM_EPOCHES 86400
 
 /* Usually no need to change*/
 #define EXCLUDE_GEO_SAT true // true: exclude geostationary satellites
@@ -166,7 +165,7 @@ int main (void) {
 	/*
 		File processing to get timeArray and satArray
 	*/	
-	char line[MAX_NUM_CHAR_LINE	+1];//+1 in case the max provided does not include the null-terminator
+	char line[MAX_NUM_CHAR_LINE+1];//+1 in case the max provided does not include the null-terminator
 	fgets(line, sizeof(line), fp); // Skip header
 	while(fgets(line, sizeof(line), fp) != NULL) {
 		char* time1 = (char*)malloc(sizeof(char)*(NUM_CHAR_DATE +1));
@@ -268,9 +267,9 @@ int main (void) {
 			/* weight by snr */
 			xyzSnr[i][j][0] *= epochArray[i].satArrayInEpoch[j].snr;
 			xyzSnr[i][j][1] *= epochArray[i].satArrayInEpoch[j].snr; 
-			xyzSnr[i][j][2] *= epochArray[i].satArrayInEpoch[j].snr;			
+			xyzSnr[i][j][2] *= epochArray[i].satArrayInEpoch[j].snr;
 			//printf("epoch index = %i || sat index = %i || weighted LOS vector (%lf, %lf %lf)\n", i, j, xyzSnr[i][j][0], xyzSnr[i][j][1], xyzSnr[i][j][2]);
-			
+			 
 			/* add to sum*/
 			xyzSnrSol[i][0] += xyzSnr[i][j][0];
 			xyzSnrSol[i][1] += xyzSnr[i][j][1]; 
@@ -302,12 +301,12 @@ int main (void) {
 		Implement MY method
 
 		1. Geostationary satellite exclusion to be implemented
-			if (!EXCLUDE_GEO_SAT || !isStrInArray(satName, geoSatList, GEOSATLISTINDEX))	
+			if (!EXCLUDE_GEO_SAT || !isStrInArray(satName, geoSatList, GEOSATLISTINDEX))
 		2. Uniformity test to be implemented 
 	*/
-	printf("================== Novel method =============================\n");	
+	//printf("================== Novel method =============================\n");
 	// print header of the output
-	printf("Epoch(GPST),#Sat,Az(deg),El(deg)\n");
+	//printf("Epoch(GPST),#Sat,Az(deg),El(deg)\n");
 	
 	double aeSol[timeArrayIndex][2]; // ae solution array
 	for (int i = 0; i < timeArrayIndex; i++) {
@@ -327,7 +326,7 @@ int main (void) {
 			aeSol[i][0] = meanAz(azArray, epochArray[i].numSat);
 			meanAz(azArray, epochArray[i].numSat);
 		}
-		printf("%s,%i,%lf\n", epochArray[i].time, epochArray[i].numSat, aeSol[i][0]);
+		//printf("%s,%i,%lf\n", epochArray[i].time, epochArray[i].numSat, aeSol[i][0]);
 	}// end of MY method
 	
 	/*
