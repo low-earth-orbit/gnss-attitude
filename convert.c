@@ -53,9 +53,11 @@ void xyz2ae (double x, double y, double z, double* azel){
 	double r = sqrt(x*x + y*y + z*z);
 	if (y==0){ // catch y=0
 		az = 90;
+		printf("Found y = 0 in xyz2ae()\n");
 	}
 	else if (x/y == M_PI/2) { // catch tan(pi/2)
 		az = -999;//undefined
+		printf("Found x/y = pi/2 in xyz2ae(). Az set to -999 Undefined.\n");
 	} 
 	else {
 		az = atan(x/y);
@@ -87,8 +89,10 @@ double meanAz (double array[], int n){
 	y /= (double)n;
 	x /= (double)n;
 	r = sqrt(x*x + y*y); // keep this in mind. can be used for uniformity test.
-	if (x/y == M_PI/2)
+	if (x/y == M_PI/2){
 		return -999;
+		printf("Found x/y = pi/2 in meanAz(). Returned -999 Undefined.\n");
+	}
 	mean = atan(x/y);
 	/* adjust for quadrant*/
 	if (y < 0.0)	mean += M_PI;
