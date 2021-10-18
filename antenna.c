@@ -119,7 +119,7 @@ int main (void) {
 	*/
 	char** timeArray; // A time array storing all unique times
 	Sat* satArray; // A sat array storing all satellite signals
-	Epoch* epochArray; // A epoch array storing all epoches
+	Epoch* epochArray; // A epoch array storing all epochs
 
 	timeArray = (char**)malloc(MAX_NUM_EPOCHES*sizeof(char*));
 	if (timeArray == NULL) {
@@ -150,7 +150,7 @@ int main (void) {
 		array indexes
 	*/
 	int satArrayIndex = 0;
-	int timeArrayIndex = 0; // epoch array index is the same, or number of epoches
+	int timeArrayIndex = 0; // epoch array index is the same, or number of epochs
 	
 	/*
 		open file for reading
@@ -269,7 +269,7 @@ int main (void) {
 			xyzSnr[i][j][1] *= epochArray[i].satArrayInEpoch[j].snr; 
 			xyzSnr[i][j][2] *= epochArray[i].satArrayInEpoch[j].snr;
 			//printf("epoch index = %i || sat index = %i || weighted LOS vector (%lf, %lf %lf)\n", i, j, xyzSnr[i][j][0], xyzSnr[i][j][1], xyzSnr[i][j][2]);
-			 
+
 			/* add to sum*/
 			xyzSnrSol[i][0] += xyzSnr[i][j][0];
 			xyzSnrSol[i][1] += xyzSnr[i][j][1]; 
@@ -281,7 +281,7 @@ int main (void) {
 	/* convert the sum to unit vector, finish snr method's xyz solution*/
 	for (int i = 0; i < timeArrayIndex; i++) {
 		normalizeXyz(xyzSnrSol[i]);
-		//printf("epoch = %s || # of Sat = %i || antenna vector = %lf %lf %lf\n", epochArray[i].time, epochArray[i].numSat, xyzSnrSol[i][0], xyzSnrSol[i][1], xyzSnrSol[i][2]);
+		printf("%s,%i,%lf,%lf,%lf\n", epochArray[i].time, epochArray[i].numSat, xyzSnrSol[i][0], xyzSnrSol[i][1], xyzSnrSol[i][2]);
 	}
 	
 	/* 
@@ -293,7 +293,7 @@ int main (void) {
 	for (int i = 0; i < timeArrayIndex; i++) {
 		xyz2ae(xyzSnrSol[i][0], xyzSnrSol[i][1], xyzSnrSol[i][2], aeSnrSol[i]);
 		// print SNR method result
-		printf("%s,%i,%lf,%lf\n", epochArray[i].time, epochArray[i].numSat, aeSnrSol[i][0], aeSnrSol[i][1]);
+		//printf("%s,%i,%lf,%lf\n", epochArray[i].time, epochArray[i].numSat, aeSnrSol[i][0], aeSnrSol[i][1]);
 	}
 	//End of SNR method
 	
@@ -303,7 +303,7 @@ int main (void) {
 		1. Geostationary satellite exclusion to be implemented
 			if (!EXCLUDE_GEO_SAT || !isStrInArray(satName, geoSatList, GEOSATLISTINDEX))
 		2. Uniformity test to be implemented 
-	*/
+
 	//printf("================== Novel method =============================\n");
 	// print header of the output
 	//printf("Epoch(GPST),#Sat,Az(deg),El(deg)\n");
@@ -328,7 +328,7 @@ int main (void) {
 		}
 		//printf("%s,%i,%lf\n", epochArray[i].time, epochArray[i].numSat, aeSol[i][0]);
 	}// end of MY method
-	
+	*/
 	/*
 		free()
 			This notice from valgrind is normal:
