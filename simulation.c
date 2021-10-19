@@ -20,6 +20,15 @@ gcc simulation.c convert.c -lm -o simulation
 ./simulation > input.txt
 */
 
+typedef struct {
+	double x; 
+	double y;
+	double z;// x (E), y(N), z(U) in local coordinates
+	double az;
+	double el;
+	double snr;
+} SimuSat; // simulated satellite
+
 /*
 	Generate points visible by the antenna, which are boresight angle dependent. This function assumes antenna azimuth = 180 deg. That is pointing to negative y (northing). Reference: https://mathworld.wolfram.com/SpherePointPicking.html
 	
@@ -32,17 +41,6 @@ gcc simulation.c convert.c -lm -o simulation
 		returns: number of satellites visible to the antenna with specific elevation angle
 	
 */
-
-typedef struct {
-	double x; 
-	double y;
-	double z;// x (E), y(N), z(U) in local coordinates
-	double az;
-	double el;
-	double snr;
-} SimuSat; // simulated satellite
-
-
 int rpVisSat (SimuSat* sat, int n, double antEl)
 {
 	int numVisPt = 0;
@@ -85,10 +83,10 @@ int rpVisSat (SimuSat* sat, int n, double antEl)
 }
 
 int main (void) {
-	int antEl = 90; // Antenna boresight elevation angle
+	int antEl = 60; // Antenna boresight elevation angle
 	// While elevation angle is adjustable, antenna azimuth is simulated at 180 deg by rpVisSat()
 	// Boresight vector is (0, -cos(antEl), sin(antEl))
-	int numEpoch = 1000; // number of simulated epoch
+	int numEpoch = 100; // number of simulated epoch
 	int numSat = 100; // number of GNSS satellites globally available
 	const double MAX_SNR = 50;
 	const double MIN_SNR = 30;// Set max and min snr values for snr computation. Assume quadratic relationship between SNR and (off-)boresight angle
