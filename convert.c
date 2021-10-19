@@ -20,7 +20,7 @@ double rad2deg (double rad) {
 	Convert (x, y, z) vector to a unit vector
 */
 void normalizeXyz (double *xyz) {
-	double len = sqrt(xyz[0]*xyz[0] + xyz[1]*xyz[1] + xyz[1]*xyz[1]);
+	double len = sqrt(pow(xyz[0],2) + pow(xyz[1],2)  + pow(xyz[2],2) );
 	if (len != 0) {
 		xyz[0] /= len;
 		xyz[1] /= len;
@@ -50,7 +50,7 @@ void ae2xyz (double az_deg, double el_deg, double *xyz){
 */
 void xyz2ae (double x, double y, double z, double* azel){
 	double az, el;
-	double r = sqrt(x*x + y*y + z*z);
+	double r = sqrt(pow(x,2) + pow(y,2) + pow(z,2));
 	if (y==0){ // catch y=0
 		az = 90;
 		printf("Found y = 0 in xyz2ae()\n");
@@ -88,7 +88,7 @@ double meanAz (double array[], int n){
 	}
 	y /= (double)n;
 	x /= (double)n;
-	r = sqrt(x*x + y*y); // keep this in mind. can be used for uniformity test.
+	r = sqrt(pow(x,2) + pow(y,2)); // keep this in mind. can be used for uniformity test.
 	if (x/y == M_PI/2){
 		return -999;
 		printf("Found x/y = pi/2 in meanAz(). Returned -999 Undefined.\n");
@@ -115,7 +115,7 @@ int main (void) {
 	double x = 1;
 	double y = 2;
 	double z = 3;
-	double len = sqrt(x*x+y*y+z*z);
+	double len = sqrt(pow(x,2) + pow(y,2) + pow(z,2));
 	printf("x = %lf\ty = %lf\tz = %lf\t\n", x/len, y/len, z/len);
 	double array[2];
 	xyz2ae(x, y, z, array);
