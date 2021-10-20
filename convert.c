@@ -29,8 +29,8 @@ void normalizeXyz (double *xyz) {
 }
 
 /*
-	Input azimuth and elevation in degrees
-	Get array of the resulting UNIT vector (x, y, z)
+	Input: azimuth and elevation in degrees
+	Output: array of the resulting UNIT vector (x, y, z)
 */
 void ae2xyz (double az_deg, double el_deg, double *xyz){
 	double az = deg2rad(az_deg);
@@ -102,7 +102,7 @@ double meanAz (double array[], int n){
 
 /*
 	Calculate spherical distance (great-circle distance) between two points on UNIT sphere.
-	The output is the distance, also the angular distance in rad if the two points are on UNIT sphere.
+	The output is the distance also the angular distance in rad if the two points are on UNIT sphere.
 */
 double spDist(double a1, double a2, double a3, double b1, double b2, double b3){
 	//printf("a1 a2 a3 = %lf %lf %lf \t b1 b2 b3 = %lf %lf %lf \n", a1, a2, a3, b1, b2, b3);
