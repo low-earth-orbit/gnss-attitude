@@ -14,7 +14,7 @@ b. Antenna can only receive signals from satellites above the antenna's horizon.
 
 Therefore, there are two hemispheres. When the antenna is pointing up at a 90 deg elevation angle, the two coincide. However, when the antenna is not at a 90 deg elevation angle only the area these hemispheres overlap has visible GNSS satellites.
 
-The underlying assumption of this simulation is that GNSS satellites are randomly distributed on the celestial sphere.
+The assumption of this simulation is that GNSS satellites are randomly distributed on the celestial sphere.
 
 gcc simulation.c convert.c -lm -o simulation
 ./simulation > input.txt
@@ -83,13 +83,13 @@ int rpVisSat (SimuSat* sat, int n, double antEl)
 }
 
 int main (void) {
-	int antEl = 60; // Antenna boresight elevation angle
+	int antEl = 90; // Antenna boresight elevation angle
 	// While elevation angle is adjustable, antenna azimuth is simulated at 180 deg by rpVisSat()
 	// Boresight vector is (0, -cos(antEl), sin(antEl))
-	int numEpoch = 100; // number of simulated epoch
+	int numEpoch = 1000; // number of simulated epoch
 	int numSat = 100; // number of GNSS satellites globally available
 	const double MAX_SNR = 50;
-	const double MIN_SNR = 30;// Set max and min snr values for snr computation. Assume quadratic relationship between SNR and (off-)boresight angle
+	const double MIN_SNR = 35;// Set max and min snr values for snr computation
 	
 	double spd, snr;
 	int numVisPt;
@@ -105,9 +105,10 @@ int main (void) {
 		numVisPt = rpVisSat(visSat, numSat, antEl);
 		if (numVisPt !=0){
 			for (int j = 0; j < numVisPt; j ++){
-				/* compute SNR*/
-				spd = spDist(visSat[j].x, visSat[j].y, visSat[j].z, 0, -cos(deg2rad(antEl)), sin(deg2rad(antEl)));
-				snr = ((MIN_SNR - MAX_SNR)/8100 )*pow(rad2deg(spd),2) + 50; // quadratic
+				/* compute SNR by assumed relationship between SNR and off-boresight angle */
+				spd = spDist(visSat[j].x, visSat[j].y, visSat[j].z, 0, -cos(deg2rad(antEl)), sin(deg2rad(antEl))); // this spd is off-boresight angle
+				snr = (MAX_SNR-MIN_SNR)*cos(spd)+MIN_SNR; // cosine relationship is default (preferred), other options below
+				//snr = ((MIN_SNR - MAX_SNR)/8100)*pow(rad2deg(spd),2) + MAX_SNR; // quadratic
 				//snr = MAX_SNR - ( (M_PI*0.5 - spd) / (0.5*M_PI))*(MAX_SNR - MIN_SNR); // linear 
 				//printf("%lf %lf\n", rad2deg(spd), snr);
 				visSat[j].snr = snr;
