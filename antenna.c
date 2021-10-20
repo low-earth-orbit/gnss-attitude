@@ -18,10 +18,10 @@ gcc antenna.c convert.c -lm -o antenna
 /* Configuration */
 #define INPUT_FILE_PATH "input.txt"
 #define MAX_NUM_EPOCHES 86400
-#define TRUE_EL -80 // if true elevation angle is know, input here for statistics (in degrees) 
+#define TRUE_EL -999
+#define TRUE_AZ 180 //If true azimuth and elevation angle of the antenna are known, input here for statistics (in degrees)
 
 /* Usually no need to change*/
-#define EXCLUDE_GEO_SAT true // true: exclude geostationary satellites
 #define MAX_NUM_SAT_EPOCH 100 // maximum number of satellites visible in an epoch
 #define MAX_NUM_SIGNALS MAX_NUM_EPOCHES*MAX_NUM_SAT_EPOCH
 #define MAX_NUM_CHAR_LINE 100 // num of char in each record or line
@@ -71,18 +71,6 @@ bool isStrInArray(char* str, char** array, int index) {
 	}
 	return false;
 }
-
-/*
-bool isTimeInSatArray(char* time, Sat* satArray, int index) {
-	for (int i = 0; i < index; i++) {
-		if(strcmp(time, satArray[i]) == 0) {
-			// If duplicate time entry found
-			return true;
-		}
-	}
-	return false;
-}
-*/
 
 char* concat(const char* str1, const char* str2)
 {
@@ -161,7 +149,7 @@ int main (void) {
 	/*
 		File processing to get timeArray and satArray
 	*/	
-	char line[MAX_NUM_CHAR_LINE+1];//+1 in case the max provided does not include the null-terminator
+	char line[MAX_NUM_CHAR_LINE+1];//+1 the MAX_NUM_CHAR_LINE provided might not include the null-terminator
 	fgets(line, sizeof(line), fp); // Skip header
 	while(fgets(line, sizeof(line), fp) != NULL) {
 		char* time1 = (char*)malloc(sizeof(char)*(NUM_CHAR_DATE +1));
@@ -194,25 +182,16 @@ int main (void) {
 		
 		if(!isStrInArray(time, timeArray, timeArrayIndex)) { // Check if the current time is unique
 			strcpy (timeArray[timeArrayIndex], time);
-			/*
-			printf("timeArray[timeArrayIndex]: %s\n", timeArray[timeArrayIndex]);
-			printf("timeArrayIndex: %d\n", timeArrayIndex);
-			*/
 			timeArrayIndex++;
 		}
 		
 		Sat satObj = createSat(time, satName, az, el, snr);
 		satArray[satArrayIndex] = satObj; // Add each sat to sat array
-		
-		/*
-		printf("satArray[satArrayIndex].time: %s\t", satArray[satArrayIndex].time);
-		printf("satArray[satArrayIndex].satName: %s\t", satArray[satArrayIndex].satName);
-		printf("satArrayIndex: %d\n", satArrayIndex);
-		*/
+
 		satArrayIndex++;
 
 		free(time1);
-		free(time2);// time1 and time2 used temporarily
+		free(time2);
 	}
 	
 	/*
@@ -335,7 +314,7 @@ int main (void) {
 	/*
 		Statistics if true antenna boresight (E, N, U) is known 
 	*/
-	if (TRUE_EL >= -90 && TRUE_EL <= 90){
+	if (TRUE_EL >= -90 && TRUE_EL <= 90 && TRUE_AZ <= 360 && TRUE_AZ>=0){
 		double rmsDun;
 		double sumDun = 0;
 
@@ -343,8 +322,10 @@ int main (void) {
 		double sumGeo = 0;
 		
 		for (int i = 0; i < timeArrayIndex; i++) {
-			sumDun += pow(spDist(xyzDunSol[i][0], xyzDunSol[i][1], xyzDunSol[i][2], 0, -cos(deg2rad(TRUE_EL)), sin(deg2rad(TRUE_EL))),2);
-			sumGeo += pow(spDist(xyzGeoSol[i][0], xyzGeoSol[i][1], xyzGeoSol[i][2], 0, -cos(deg2rad(TRUE_EL)), sin(deg2rad(TRUE_EL))),2);
+			double trueAntennaXyz[3];
+			ae2xyz(TRUE_AZ,TRUE_EL,trueAntennaXyz);
+			sumDun += pow(spDist(xyzDunSol[i][0], xyzDunSol[i][1], xyzDunSol[i][2], trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]),2);
+			sumGeo += pow(spDist(xyzGeoSol[i][0], xyzGeoSol[i][1], xyzGeoSol[i][2], trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]),2);
 		}
 		
 		rmsDun = sqrt(sumDun/timeArrayIndex);
