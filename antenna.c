@@ -2,18 +2,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "geosat.h" // Geostationary satellites
+#include <math.h>
 #include "convert.h" // Coordinate transformation methods
 /*
 
 Information for users of this program:
 1. Modify the below configuration if necessary
-2. Recommended elevation cutoff angle = 0
-3. Do a sanity check for the input file. Input file should closely resemble "input_example.txt". Input file should not contain any of the following:
-	a. SBAS satellites (unselect this option in RTKLIB) because they're geostationary
-	b. Satellites without azimuth & elevation information
-4. The program automatically filter out geostationary satellites. Non-geostationary geosynchronous satellites are still kept. If new geostationary GNSS satellites have been launched since 2021-08-31, update the list of geostationary satellites in "geosat.h". This list does not include SBAS satellites, unless added by you.
-
+2. Do a sanity check for the input file. Input file should closely resemble "input_example.txt".
+	Input file should not contain satellites without azimuth, elevation or SNR information.
 
 gcc antenna.c convert.c -lm -o antenna
 ./antenna > output.txt
@@ -22,6 +18,7 @@ gcc antenna.c convert.c -lm -o antenna
 /* Configuration */
 #define INPUT_FILE_PATH "input.txt"
 #define MAX_NUM_EPOCHES 86400
+#define TRUE_EL -80 // if true elevation angle is know, input here for statistics (in degrees) 
 
 /* Usually no need to change*/
 #define EXCLUDE_GEO_SAT true // true: exclude geostationary satellites
@@ -31,7 +28,6 @@ gcc antenna.c convert.c -lm -o antenna
 #define NUM_CHAR_DATE 10
 #define NUM_CHAR_TIME 10
 #define NUM_CHAR_SAT 3
-
 
 typedef struct {
 	char* time; // GPS time
@@ -252,88 +248,120 @@ int main (void) {
 	//printEpochArray(epochArray, timeArrayIndex);
 	
 	/*
-		Implement SNR method
-
-		For each epoch, form LoS vectors from az & el, weight them, then do a summation
+		Duncan method (Duncan & Dunn, 1998) -- Vector sum of signal-to-noise ratio (SNR) weighted line-of-sight (LOS) vectors
 	*/
-	double xyzSnr[timeArrayIndex][MAX_NUM_SAT_EPOCH][3];
-	double xyzSnrSol[timeArrayIndex][3]; // xyz solution array
+	double xyzDun[timeArrayIndex][MAX_NUM_SAT_EPOCH][3];
+	double xyzDunSol[timeArrayIndex][3]; // xyz solution array
+	double aeDuncanSol[timeArrayIndex][2]; // ae solution array
+
+	// print header of the output
+	printf("================== Duncan method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
+
 	for (int i = 0; i < timeArrayIndex; i++) {
 		for (int j = 0; j < epochArray[i].numSat; j++){
-			/* get LOS vector */
-			ae2xyz(epochArray[i].satArrayInEpoch[j].az, epochArray[i].satArrayInEpoch[j].el, xyzSnr[i][j]); 
-			//printf("epoch index = %i || sat index = %i || LOS vector (%lf, %lf %lf)\n", i, j, xyzSnr[i][j][0], xyzSnr[i][j][1], xyzSnr[i][j][2]);
+			/* calculate LOS vector from azimuth and elevation*/
+			ae2xyz(epochArray[i].satArrayInEpoch[j].az, epochArray[i].satArrayInEpoch[j].el, xyzDun[i][j]); 
+			//printf("epoch index = %i || sat index = %i || LOS vector (%lf, %lf %lf)\n", i, j, xyzDun[i][j][0], xyzDun[i][j][1], xyzDun[i][j][2]);
 			
-			/* weight by snr */
-			xyzSnr[i][j][0] *= epochArray[i].satArrayInEpoch[j].snr;
-			xyzSnr[i][j][1] *= epochArray[i].satArrayInEpoch[j].snr; 
-			xyzSnr[i][j][2] *= epochArray[i].satArrayInEpoch[j].snr;
-			//printf("epoch index = %i || sat index = %i || weighted LOS vector (%lf, %lf %lf)\n", i, j, xyzSnr[i][j][0], xyzSnr[i][j][1], xyzSnr[i][j][2]);
+			/* weight LOS vector by SNR */
+			xyzDun[i][j][0] *= epochArray[i].satArrayInEpoch[j].snr;
+			xyzDun[i][j][1] *= epochArray[i].satArrayInEpoch[j].snr; 
+			xyzDun[i][j][2] *= epochArray[i].satArrayInEpoch[j].snr;
+			//printf("epoch index = %i || sat index = %i || weighted LOS vector (%lf, %lf %lf)\n", i, j, xyzDun[i][j][0], xyzDun[i][j][1], xyzDun[i][j][2]);
 
-			/* add to sum*/
-			xyzSnrSol[i][0] += xyzSnr[i][j][0];
-			xyzSnrSol[i][1] += xyzSnr[i][j][1]; 
-			xyzSnrSol[i][2] += xyzSnr[i][j][2];
-			//printf("epoch index = %i || sat index = %i || Accumulated sum of weighted LOS vector (%lf, %lf %lf)\n", i, j, xyzSnrSol[i][0], xyzSnrSol[i][1], xyzSnrSol[i][2]);
+			/* add to vector sum */
+			xyzDunSol[i][0] += xyzDun[i][j][0];
+			xyzDunSol[i][1] += xyzDun[i][j][1]; 
+			xyzDunSol[i][2] += xyzDun[i][j][2];
+			//printf("epoch index = %i || sat index = %i || Accumulated sum of weighted LOS vector (%lf, %lf %lf)\n", i, j, xyzDunSol[i][0], xyzDunSol[i][1], xyzDunSol[i][2]);
 		}
-	}
-	
-	/* convert the sum to unit vector, finish snr method's xyz solution*/
-	for (int i = 0; i < timeArrayIndex; i++) {
-		normalizeXyz(xyzSnrSol[i]);
-		printf("%s,%i,%lf,%lf,%lf\n", epochArray[i].time, epochArray[i].numSat, xyzSnrSol[i][0], xyzSnrSol[i][1], xyzSnrSol[i][2]);
-	}
-	
-	/* 
-		from xyz solution derive azimuth-elevation solution
-	*/
-	double aeSnrSol[timeArrayIndex][2]; // ae solution array
-	// print header of the output
-	printf("================== SNR method ============================= \nEpoch(GPST),#Sat,Az(deg),El(deg)\n");
-	for (int i = 0; i < timeArrayIndex; i++) {
-		xyz2ae(xyzSnrSol[i][0], xyzSnrSol[i][1], xyzSnrSol[i][2], aeSnrSol[i]);
-		// print SNR method result
-		//printf("%s,%i,%lf,%lf\n", epochArray[i].time, epochArray[i].numSat, aeSnrSol[i][0], aeSnrSol[i][1]);
-	}
-	//End of SNR method
+
+		/* convert the sum to unit vector to get xyz solution*/
+		//printf("Before normalize %s,%i,%lf,%lf,%lf\n", epochArray[i].time, epochArray[i].numSat, xyzDunSol[i][0], xyzDunSol[i][1], xyzDunSol[i][2]);
+		normalizeXyz(xyzDunSol[i]);
+
+		/* from xyz solution derive azimuth-elevation solution */
+		xyz2ae(xyzDunSol[i][0], xyzDunSol[i][1], xyzDunSol[i][2], aeDuncanSol[i]);
+
+		/* print Duncan method result */
+		printf("%s,%i,%lf,%lf,%lf,%lf,%lf\n", epochArray[i].time, epochArray[i].numSat, xyzDunSol[i][0], xyzDunSol[i][1], xyzDunSol[i][2], aeDuncanSol[i][0], aeDuncanSol[i][1]);
+		
+	}//End of Duncan method
 	
 	/*
-		Implement MY method
-
-		1. Geostationary satellite exclusion to be implemented
-			if (!EXCLUDE_GEO_SAT || !isStrInArray(satName, geoSatList, GEOSATLISTINDEX))
-		2. Uniformity test to be implemented 
-
-	//printf("================== Novel method =============================\n");
-	// print header of the output
-	//printf("Epoch(GPST),#Sat,Az(deg),El(deg)\n");
-	
-	double aeSol[timeArrayIndex][2]; // ae solution array
-	for (int i = 0; i < timeArrayIndex; i++) {
-		if (epochArray[i].numSat == 0) {
-			aeSol[i][0] = -1000; // Undeterminable
-			//aeSol[i][1] = -1090; // Undeterminable or -90 deg
-		}
-		else if (epochArray[i].numSat == 1) {
-			aeSol[i][0] = epochArray[i].satArrayInEpoch[0].az;
-		}
-		else {
-			double azArray[epochArray[i].numSat];
-			for (int j = 0; j < epochArray[i].numSat; j++){
-				azArray[j] = epochArray[i].satArrayInEpoch[j].az;
-				//printf("Epoch = %i || numSat = %i || j = %i || az = %lf\n", i, epochArray[i].numSat, j, epochArray[i].satArrayInEpoch[j].az);
-			}
-			aeSol[i][0] = meanAz(azArray, epochArray[i].numSat);
-			meanAz(azArray, epochArray[i].numSat);
-		}
-		//printf("%s,%i,%lf\n", epochArray[i].time, epochArray[i].numSat, aeSol[i][0]);
-	}// end of MY method
+		Geometry method -- Vector sum of non-weighted line-of-sight (LOS) vectors with geometry adjustment for elevation angle
 	*/
+	double xyzGeo[timeArrayIndex][MAX_NUM_SAT_EPOCH][3];
+	double xyzGeoSol[timeArrayIndex][3]; // xyz solution array
+	double aeGeoSol[timeArrayIndex][2]; // ae solution array
+
+	// print header of the output
+	printf("================== Geometry method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
+
+	for (int i = 0; i < timeArrayIndex; i++) {
+		for (int j = 0; j < epochArray[i].numSat; j++){
+			/* calculate LOS vector from azimuth and elevation*/
+			ae2xyz(epochArray[i].satArrayInEpoch[j].az, epochArray[i].satArrayInEpoch[j].el, xyzGeo[i][j]); 
+			//printf("epoch index = %i || sat index = %i || LOS vector (%lf, %lf %lf)\n", i, j, xyzGeo[i][j][0], xyzGeo[i][j][1], xyzGeo[i][j][2]);
+
+			/* add to vector sum */
+			xyzGeoSol[i][0] += xyzGeo[i][j][0];
+			xyzGeoSol[i][1] += xyzGeo[i][j][1]; 
+			xyzGeoSol[i][2] += xyzGeo[i][j][2];
+			//printf("epoch index = %i || sat index = %i || Accumulated sum of LOS vector (%lf, %lf %lf)\n", i, j, xyzGeoSol[i][0], xyzGeoSol[i][1], xyzGeoSol[i][2]);
+		}
+
+		/* convert the sum to unit vector to get xyz solution*/
+		//printf("Before normalize %s,%i,%lf,%lf,%lf\n", epochArray[i].time, epochArray[i].numSat, xyzGeoSol[i][0], xyzGeoSol[i][1], xyzGeoSol[i][2]);
+		normalizeXyz(xyzGeoSol[i]);
+		//printf("After normalize %s,%i,%lf,%lf,%lf\n", epochArray[i].time, epochArray[i].numSat, xyzGeoSol[i][0], xyzGeoSol[i][1], xyzGeoSol[i][2]);
+		
+		/* from xyz solution derive azimuth-elevation solution */
+		xyz2ae(xyzGeoSol[i][0], xyzGeoSol[i][1], xyzGeoSol[i][2], aeGeoSol[i]);
+
+		/* adjust the elevation angle by (2 * el - 90) */
+		//printf("Before adjustment el = %lf\n", aeGeoSol[i][1]);
+		aeGeoSol[i][1] = aeGeoSol[i][1]*2.0 - 90.0;
+		//printf("After adjustment el = %lf\n", aeGeoSol[i][1]);
+		
+		/* recompute xyz solution using adjusted elevation angle */
+		ae2xyz(aeGeoSol[i][0], aeGeoSol[i][1], xyzGeoSol[i]);
+
+		/* print Geometry method result */
+		printf("%s,%i,%lf,%lf,%lf,%lf,%lf\n", epochArray[i].time, epochArray[i].numSat, xyzGeoSol[i][0], xyzGeoSol[i][1], xyzGeoSol[i][2], aeGeoSol[i][0], aeGeoSol[i][1]);
+		
+	}//End of Geometry method
+	
+	/*
+		Statistics if true antenna boresight (E, N, U) is known 
+	*/
+	if (TRUE_EL >= -90 && TRUE_EL <= 90){
+		double rmsDun;
+		double sumDun = 0;
+
+		double rmsGeo;
+		double sumGeo = 0;
+		
+		for (int i = 0; i < timeArrayIndex; i++) {
+			sumDun += pow(spDist(xyzDunSol[i][0], xyzDunSol[i][1], xyzDunSol[i][2], 0, -cos(deg2rad(TRUE_EL)), sin(deg2rad(TRUE_EL))),2);
+			sumGeo += pow(spDist(xyzGeoSol[i][0], xyzGeoSol[i][1], xyzGeoSol[i][2], 0, -cos(deg2rad(TRUE_EL)), sin(deg2rad(TRUE_EL))),2);
+		}
+		
+		rmsDun = sqrt(sumDun/timeArrayIndex);
+		rmsDun = rad2deg(rmsDun);
+		
+		rmsGeo = sqrt(sumGeo/timeArrayIndex);
+		rmsGeo = rad2deg(rmsGeo);
+		
+		printf ("================== Statistics ==================\n%i epochs, antenna @ %i deg\nRMS Duncan method = %lf deg\nRMS Geometry method = %lf deg\n", timeArrayIndex, TRUE_EL, rmsDun, rmsGeo);
+	}
+
+
 	/*
 		free()
 			This notice from valgrind is normal:
 				Conditional jump or move depends on uninitialised value(s)
-			This is because the arrays are not fully allocated; e.g. MAX_NUM_SIGNALS < actual num of signals
+			This is because the arrays are not fully propagated; e.g. MAX_NUM_SIGNALS < actual num of signals
 			Could use calloc() instead of malloc()
 	*/
 	for (int i = 0; i < MAX_NUM_EPOCHES; i++) {
