@@ -17,7 +17,7 @@ gcc antenna.c mathutil.c -lm -o antenna
 /* Configuration */
 #define INPUT_FILE_PATH "input.txt"
 #define MAX_NUM_EPOCHES 86400
-#define TRUE_EL -80
+#define TRUE_EL 90
 #define TRUE_AZ 180 //If true azimuth and elevation angle of the antenna are known, input here for statistics (in degrees)
 
 /* Usually no need to change*/
@@ -331,11 +331,10 @@ int main (void) {
 			
 			/*
 				program under development
-					no adjustment to SNR for now
-					no uncertainty function
-					no iteration for solving b vector
+					no adjustment to SNR
 			*/
-			double sigma = 1; // uncertainty is a function of SNR
+			double sigmaSnr = 0.5+(3-0.5)*(epochArray[i].satArrayInEpoch[j].snr - 35)/(50-35);
+			double sigma = sigmaSnr/15.0; // uncertainty is a function of SNR
 			double cosAlpha = (epochArray[i].satArrayInEpoch[j].snr - 35)/(50-35); // the mapping function is snr = (MAX_SNR-MIN_SNR)*cos(spd)+MIN_SNR; 
 			// cosAlpha is OK //printf("cosAlpha = %lf \n", cosAlpha);
 			
