@@ -108,18 +108,18 @@ int main (void) {
 	const double MAX_SNR_STD = 3;
 	const double MIN_SNR_STD = 0.5; // set max and min snr value variation (standard deviation)
 	
+	srand(time(NULL));// set seed for rand()
+	
 	double spd, snr;
 	int numVisPt;
 	double snrAdd;
 	printf("SIMULATED INPUT FILE || \"SIMUEPOCH#\" \"TIME\"Epoch# \"SAT\" AZ EL SNR SAT#\n");// print header 	
 	for (int i=0; i<numEpoch; i++){ // one simulation per loop 
-		
 		SimuSat* visSat = (SimuSat*)malloc(numSat*sizeof(SimuSat));
 		if (visSat == NULL) {
 			fprintf(stderr, "malloc() failed for creating visSat\n");
 			exit(-1);
 		}
-		srand(time(NULL));// set seed for rand()
 		numVisPt = rpVisSat(visSat, numSat, antEl);
 		if (numVisPt !=0){
 			for (int j = 0; j < numVisPt; j ++){
