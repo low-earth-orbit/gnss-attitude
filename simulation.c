@@ -4,7 +4,9 @@
 #include <stdbool.h>
 #include <time.h>
 #include <math.h>
-#include "mathutil.h" // math utilities
+#include "mathutil.h"
+#include "truth.h"
+
 /*
 This program simulates the satellite-antenna geometry.
 
@@ -98,7 +100,7 @@ double randNormal()
 }
 
 int main (void) {
-	int antEl = 90; // Antenna boresight elevation angle
+	int antEl = TRUE_EL; // Antenna boresight elevation angle
 	// While elevation angle is adjustable, antenna azimuth is simulated at 180 deg by rpVisSat()
 	// Boresight vector is (0, -cos(antEl), sin(antEl))
 	int numEpoch = 1000; // number of simulated epoch
