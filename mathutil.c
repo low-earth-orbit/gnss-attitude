@@ -78,17 +78,15 @@ void xyz2ae (double x, double y, double z, double* azel){
 */
 double meanAz (double array[], int n){
 	if (n == 1)	return array[0];
-	double mean, x, y, r;
+	double mean, x, y;
 	x = 0.0;
 	y = 0.0;
-	r = 0.0;
 	for (int i = 0; i < n; i++){
 		y += cos(deg2rad(array[i]));
 		x += sin(deg2rad(array[i]));
 	}
 	y /= (double)n;
 	x /= (double)n;
-	r = sqrt(pow(x,2) + pow(y,2)); // keep this in mind. can be used for uniformity test.
 	if (x/y == M_PI/2){
 		return -999;
 		printf("Found x/y = pi/2 in meanAz(). Returned -999 Undefined.\n");
