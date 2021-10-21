@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include <math.h>
-#include "mathutil.h" // Coordinate transformation methods
+#include "mathutil.h" // math utilities
 /*
 This program simulates the satellite-antenna geometry.
 
@@ -105,8 +105,8 @@ int main (void) {
 	int numSat = 100; // number of GNSS satellites globally available
 	const double MAX_SNR = 50;
 	const double MIN_SNR = 35; // Set max and min snr values for snr computation
-	const double MAX_SNR_STD = 5;
-	const double MIN_SNR_STD = 2; // set max and min snr value variation (standard deviation)
+	const double MAX_SNR_STD = 3;
+	const double MIN_SNR_STD = 0.5; // set max and min snr value variation (standard deviation)
 	
 	double spd, snr;
 	int numVisPt;
