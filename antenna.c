@@ -10,7 +10,7 @@ Information for users of this program:
 1. Modify the below configuration if necessary
 2. Input file should not contain satellites without azimuth, elevation or SNR information.
 
-gcc antenna.c convert.c -lm -o antenna
+gcc antenna.c mathutil.c -lm -o antenna
 ./antenna > output.txt
 */
 
