@@ -82,6 +82,21 @@ int rpVisSat (SimuSat* sat, int n, double antEl)
 	return numVisPt;
 }
 
+/*
+	Return a normally distributed random number 
+*/
+double randNormal()
+{
+    double x , y, rsq, f;
+	do {
+		x = 2.0 * (double)rand() / (double)RAND_MAX - 1.0;
+		y = 2.0 * (double)rand() / (double)RAND_MAX - 1.0;
+		rsq = x * x + y * y;
+	} while( rsq >= 1.0 || rsq == 0.0);
+	f = sqrt( -2.0 * log(rsq) / rsq );
+    return x * f;
+}
+
 int main (void) {
 	int antEl = 90; // Antenna boresight elevation angle
 	// While elevation angle is adjustable, antenna azimuth is simulated at 180 deg by rpVisSat()
@@ -89,10 +104,13 @@ int main (void) {
 	int numEpoch = 1000; // number of simulated epoch
 	int numSat = 100; // number of GNSS satellites globally available
 	const double MAX_SNR = 50;
-	const double MIN_SNR = 35;// Set max and min snr values for snr computation
+	const double MIN_SNR = 35; // Set max and min snr values for snr computation
+	const double MAX_SNR_STD = 5;
+	const double MIN_SNR_STD = 2; // set max and min snr value variation (standard deviation)
 	
 	double spd, snr;
 	int numVisPt;
+	double snrAdd;
 	printf("SIMULATED INPUT FILE || \"SIMUEPOCH#\" \"TIME\"Epoch# \"SAT\" AZ EL SNR SAT#\n");// print header 	
 	for (int i=0; i<numEpoch; i++){ // one simulation per loop 
 		
@@ -112,6 +130,12 @@ int main (void) {
 				//snr = MAX_SNR - ( (M_PI*0.5 - spd) / (0.5*M_PI))*(MAX_SNR - MIN_SNR); // linear 
 				//printf("%lf %lf\n", rad2deg(spd), snr);
 				visSat[j].snr = snr;
+				
+				/* apply SNR variation */
+				srand(time(0)+i*j);
+				snrAdd = randNormal()*(MIN_SNR_STD + ( spd / (0.5*M_PI))*(MAX_SNR_STD - MIN_SNR_STD)); // assume linear relationship between variation of SNR and off-boresight angle 
+				visSat[j].snr += snrAdd;
+				//printf("%lf, %lf\n", spd, visSat[j].snr);
 				/*
 					print
 				*/
