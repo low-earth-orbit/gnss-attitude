@@ -3,22 +3,23 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
-#include "mathutil.h" // math utilities
+#include <gsl/gsl_multifit.h>
+#include "mathutil.h"
+#include "truth.h"
+
 /*
 
 Information for users of this program:
 1. Modify the below configuration if necessary
 2. Input file should not contain satellites without azimuth, elevation or SNR information.
 
-gcc antenna.c mathutil.c -lm -o antenna
+gcc -Wall antenna.c mathutil.c -o antenna -lgsl -lgslcblas -lm
 ./antenna > output.txt
 */
 
 /* Configuration */
 #define INPUT_FILE_PATH "input.txt"
 #define MAX_NUM_EPOCHES 86400
-#define TRUE_EL 0
-#define TRUE_AZ 180 //If true azimuth and elevation angle of the antenna are known, input here for statistics (in degrees)
 
 /* Usually no need to change*/
 #define MAX_NUM_SAT_EPOCH 100 // maximum number of satellites visible in an epoch
@@ -129,9 +130,6 @@ int main (void) {
 		exit(-1);
 	}
 	
-	/*
-		array indexes
-	*/
 	int satArrayIndex = 0;
 	int timeArrayIndex = 0; // epoch array index is the same, or number of epochs
 	
@@ -147,8 +145,8 @@ int main (void) {
 
 	/*
 		File processing to get timeArray and satArray
-	*/	
-	char line[MAX_NUM_CHAR_LINE+1];//+1 the MAX_NUM_CHAR_LINE provided might not include the null-terminator
+	*/
+	char line[MAX_NUM_CHAR_LINE+1];
 	fgets(line, sizeof(line), fp); // Skip header
 	while(fgets(line, sizeof(line), fp) != NULL) {
 		char* time1 = (char*)malloc(sizeof(char)*(NUM_CHAR_DATE +1));
@@ -192,10 +190,6 @@ int main (void) {
 		free(time1);
 		free(time2);
 	}
-	
-	/*
-		close file
-	*/
 	fclose(fp);
 	
 	/* 
@@ -211,9 +205,8 @@ int main (void) {
 			exit(-1);
 		}
 		
-		int epochSatArrayIndex = 0; //num of sat in an epoch initially 0
+		int epochSatArrayIndex = 0;
 		for (int j = 0; j < satArrayIndex; j++){
-			//printf("%i %s %s\n", satArrayIndex, timeArray[i], satArray[j].time);
 			if (strcmp(timeArray[i], satArray[j].time)==0) {
 				epochSatArray[epochSatArrayIndex] = satArray[j];
 				epochSatArrayIndex++;
@@ -222,7 +215,6 @@ int main (void) {
 		Epoch epochObj = createEpoch(timeArray[i], epochSatArray, epochSatArrayIndex); 
 		epochArray[i] = epochObj;
 	}
-	//print lines read in by the program
 	//printEpochArray(epochArray, timeArrayIndex);
 	
 	/*
@@ -239,23 +231,19 @@ int main (void) {
 		for (int j = 0; j < epochArray[i].numSat; j++){
 			/* calculate LOS vector from azimuth and elevation*/
 			ae2xyz(epochArray[i].satArrayInEpoch[j].az, epochArray[i].satArrayInEpoch[j].el, xyzDun[i][j]); 
-			//printf("epoch index = %i || sat index = %i || LOS vector (%lf, %lf %lf)\n", i, j, xyzDun[i][j][0], xyzDun[i][j][1], xyzDun[i][j][2]);
 			
 			/* weight LOS vector by SNR */
 			xyzDun[i][j][0] *= epochArray[i].satArrayInEpoch[j].snr;
 			xyzDun[i][j][1] *= epochArray[i].satArrayInEpoch[j].snr; 
 			xyzDun[i][j][2] *= epochArray[i].satArrayInEpoch[j].snr;
-			//printf("epoch index = %i || sat index = %i || weighted LOS vector (%lf, %lf %lf)\n", i, j, xyzDun[i][j][0], xyzDun[i][j][1], xyzDun[i][j][2]);
 
 			/* add to vector sum */
 			xyzDunSol[i][0] += xyzDun[i][j][0];
 			xyzDunSol[i][1] += xyzDun[i][j][1]; 
 			xyzDunSol[i][2] += xyzDun[i][j][2];
-			//printf("epoch index = %i || sat index = %i || Accumulated sum of weighted LOS vector (%lf, %lf %lf)\n", i, j, xyzDunSol[i][0], xyzDunSol[i][1], xyzDunSol[i][2]);
 		}
 
 		/* convert the sum to unit vector to get xyz solution*/
-		//printf("Before normalize %s,%i,%lf,%lf,%lf\n", epochArray[i].time, epochArray[i].numSat, xyzDunSol[i][0], xyzDunSol[i][1], xyzDunSol[i][2]);
 		normalizeXyz(xyzDunSol[i]);
 
 		/* from xyz solution derive azimuth-elevation solution */
@@ -264,7 +252,7 @@ int main (void) {
 		/* print Duncan's method result */
 		printf("%s,%i,%lf,%lf,%lf,%lf,%lf\n", epochArray[i].time, epochArray[i].numSat, xyzDunSol[i][0], xyzDunSol[i][1], xyzDunSol[i][2], aeDunSol[i][0], aeDunSol[i][1]);
 		
-	}//End of Duncan's method
+	}
 	
 	/*
 		Geometry method -- Vector sum of non-weighted line-of-sight (LOS) vectors with geometry adjustment for elevation angle. Duncan's method is biased toward the spherical area where the satellite signals come from. If the antenna's elevation angle is negative, Duncan's method yields a positive elevation angle estimate. This method is designed by the author of the program to address the geometry issue existing in Duncan's method.
@@ -302,7 +290,7 @@ int main (void) {
 		/* print Geometry method result */
 		printf("%s,%i,%lf,%lf,%lf,%lf,%lf\n", epochArray[i].time, epochArray[i].numSat, xyzGeoSol[i][0], xyzGeoSol[i][1], xyzGeoSol[i][2], aeGeoSol[i][0], aeGeoSol[i][1]);
 		
-	}//End of Geometry method
+	}
 	
 	/*
 		Axelrad's method (1999) -- Compared to Duncan's method, this is the proper use of SNR in determining antenna boresight vector. It requires antenna gain mapping (the relationship between off-boresight angle and SNR for the antenna) and adjustment to measured SNR.
@@ -315,87 +303,74 @@ int main (void) {
 	printf("================== Axelrad's method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
 	for (int i = 0; i < timeArrayIndex; i++) {
 		
-		double n[3][3] = {
-			{0, 0, 0},
-			{0, 0, 0},
-			{0, 0, 0}
-		};
-		double z[3] = { 0, 0, 0};
+		/*	
+			Observation equation: transpose(s) b = cos(alpha) 
+										corresponds to X c = y below
+			See GNU Scientific Library Reference Manual for more: https://www.gnu.org/software/gsl/doc/html/lls.html#examples
+		*/
+		int n;
+		double chisq;
+		gsl_matrix *X, *cov;
+		gsl_vector *y, *w, *c;
+		n = epochArray[i].numSat; // number of observations
+		X = gsl_matrix_alloc (n, 3);
+		y = gsl_vector_alloc (n); // n*1 matrix
+		w = gsl_vector_alloc (n); // n*n matrix
+		c = gsl_vector_alloc (3); // (x, y, z) this is the boresight vector
+		cov = gsl_matrix_alloc (3, 3); // cov = inverse(transpose(X) W X)
 		
 		for (int j = 0; j < epochArray[i].numSat; j++){
-			
-			// looping is OK //printf("i = %i j = %i\n", i, j);
 			/* calculate LOS vector from azimuth and elevation*/
-			ae2xyz(epochArray[i].satArrayInEpoch[j].az, epochArray[i].satArrayInEpoch[j].el, xyz[i][j]); 
-			// LOS vectors are OK //printf("epoch index = %i || sat index = %i || LOS vector (%lf, %lf %lf)\n", i, j, xyz[i][j][0], xyz[i][j][1], xyz[i][j][2]);
+			ae2xyz(epochArray[i].satArrayInEpoch[j].az, epochArray[i].satArrayInEpoch[j].el, xyz[i][j]);
 			
-			/*
-				program under development
-					no adjustment to SNR
-			*/
 			double sigmaSnr = 0.5+(3-0.5)*(epochArray[i].satArrayInEpoch[j].snr - 35)/(50-35);
 			if (sigmaSnr < 0.5)
 				sigmaSnr = 0.5; // catch the case that sigma <= 0
-			
 			double sigma = sigmaSnr/15.0; // uncertainty is a function of SNR
 			double cosAlpha = (epochArray[i].satArrayInEpoch[j].snr - 35)/(50-35); // the mapping function is snr = (MAX_SNR-MIN_SNR)*cos(spd)+MIN_SNR; 
-			// cosAlpha is OK //printf("cosAlpha = %lf \n", cosAlpha);
 			
-			n[0][0] += xyz[i][j][0]*xyz[i][j][0]/pow(sigma,2);
-			n[0][1] += xyz[i][j][0]*xyz[i][j][1]/pow(sigma,2);
-			n[0][2] += xyz[i][j][0]*xyz[i][j][2]/pow(sigma,2);
-			n[1][0] += xyz[i][j][1]*xyz[i][j][0]/pow(sigma,2);
-			n[1][1] += xyz[i][j][1]*xyz[i][j][1]/pow(sigma,2);
-			n[1][2] += xyz[i][j][1]*xyz[i][j][2]/pow(sigma,2);
-			n[2][0] += xyz[i][j][2]*xyz[i][j][0]/pow(sigma,2);
-			n[2][1] += xyz[i][j][2]*xyz[i][j][1]/pow(sigma,2);
-			n[2][2] += xyz[i][j][2]*xyz[i][j][2]/pow(sigma,2);
-			// n is OK
-			/*
-			for (int i=0; i<3; i++){
-				for (int j=0; j<3; j++){
-					printf("n[i][j] = %lf\n", n[i][j]);
-				}
-			}
-			*/
-			z[0] += cosAlpha*xyz[i][j][0]/pow(sigma,2);
-			z[1] += cosAlpha*xyz[i][j][1]/pow(sigma,2);
-			z[2] += cosAlpha*xyz[i][j][2]/pow(sigma,2);
-			
-			// z is OK
-			/*
-				for (int j=0; j<3; j++){
-					printf("z[j] = %lf\n", z[j]);
-				}
-				*/
+			// Set each observation equation 
+			gsl_matrix_set (X, j, 0, xyz[i][j][0]);
+			gsl_matrix_set (X, j, 1, xyz[i][j][1]);
+			gsl_matrix_set (X, j, 2, xyz[i][j][2]);
+			gsl_vector_set (y, j, cosAlpha);
+			gsl_vector_set (w, j, 1.0/(sigma*sigma));
 		}
+
+		gsl_multifit_linear_workspace * work = gsl_multifit_linear_alloc (n, 3);
+		gsl_multifit_wlinear (X, w, y, c, cov, &chisq, work);
+		gsl_multifit_linear_free (work);
 		
-		double nDet = n[0][0]*(n[1][1]*n[2][2] - n[2][1]*n[1][2]) - n[0][1]*(n[1][0]*n[2][2] - n[1][2]*n[2][0]) + n[0][2]*(n[1][0]*n[2][1] - n[1][1]*n[2][0]);
-		// ndet is OK // printf("ndet = %lf\n", nDet);
+		#define C(i) (gsl_vector_get(c,(i)))
+		#define COV(i,j) (gsl_matrix_get(cov,(i),(j)))
+		/* Least squares result
+		{
+			printf ("# best fit: Y = %g + %g X + %g X^2\n",
+					C(0), C(1), C(2));
+
+			printf ("# covariance matrix:\n");
+			printf ("[ %+.5e, %+.5e, %+.5e  \n",
+					   COV(0,0), COV(0,1), COV(0,2));
+			printf ("  %+.5e, %+.5e, %+.5e  \n",
+					   COV(1,0), COV(1,1), COV(1,2));
+			printf ("  %+.5e, %+.5e, %+.5e ]\n",
+					   COV(2,0), COV(2,1), COV(2,2));
+			printf ("# chisq = %g\n", chisq);
+		}
+		*/
 		
-		double nInv[3][3] = {
-			{0, 0, 0},
-			{0, 0, 0},
-			{0, 0, 0}
-		};
+		/* save best fit */
+		xyzSol[i][0] = C(0);
+		xyzSol[i][1] = C(1);
+		xyzSol[i][2] = C(2);
 		
-		nInv[0][0] = (n[1][1]*n[2][2] - n[2][1]*n[1][2])/nDet;
-		nInv[0][1] = (n[0][2]*n[2][1] - n[0][1]*n[2][2])/nDet;
-		nInv[0][2] = (n[0][1]*n[1][2] - n[0][2]*n[1][1])/nDet;
-		nInv[1][0] = (n[1][2]*n[2][0] - n[1][0]*n[2][2])/nDet;
-		nInv[1][1] = (n[0][0]*n[2][2] - n[0][2]*n[2][0])/nDet;
-		nInv[1][2] = (n[1][0]*n[0][2] - n[0][0]*n[1][2])/nDet;
-		nInv[2][0] = (n[1][0]*n[2][1] - n[2][0]*n[1][1])/nDet;
-		nInv[2][1] = (n[2][0]*n[0][1] - n[0][0]*n[2][1])/nDet;
-		nInv[2][2] = (n[0][0]*n[1][1] - n[1][0]*n[0][1])/nDet;
+		gsl_matrix_free (X);
+		gsl_vector_free (y);
+		gsl_vector_free (w);
+		gsl_vector_free (c);
+		gsl_matrix_free (cov);
 		
-		
-		xyzSol[i][0] = (nInv[0][0] + nInv[0][1] + nInv[0][2])*z[0];
-		xyzSol[i][1] = (nInv[1][0] + nInv[1][1] + nInv[1][2])*z[1];
-		xyzSol[i][2] = (nInv[2][0] + nInv[2][1] + nInv[2][2])*z[2];
-		
-		/* normalize the resulting vector to get xyz solution*/
-		
+		/* normalize the resulting vector to get xyz solution*/		
 		//printf("Before normalize %s,%i,%lf,%lf,%lf\n", epochArray[i].time, epochArray[i].numSat, xyzSol[i][0], xyzSol[i][1], xyzSol[i][2]);
 		normalizeXyz(xyzSol[i]);
 		
@@ -404,7 +379,7 @@ int main (void) {
 		
 		/* print Axelrad's method result */
 		printf("%s,%i,%lf,%lf,%lf,%lf,%lf\n", epochArray[i].time, epochArray[i].numSat, xyzSol[i][0], xyzSol[i][1], xyzSol[i][2], aeSol[i][0], aeSol[i][1]);
-	}// end of Axelrad's method
+	}
 	
 	
 	/*
