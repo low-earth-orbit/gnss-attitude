@@ -1,12 +1,12 @@
 /*
-gcc convert.c -lm -o convert
+gcc mathutil.c -lm -o mathutil
 */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
-#include "convert.h"
+#include "mathutil.h"
 
 double deg2rad (double deg){
     return deg * M_PI / 180.0;

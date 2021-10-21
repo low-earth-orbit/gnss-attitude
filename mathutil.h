@@ -1,6 +1,6 @@
-// convert.h
-#ifndef CONVERT_H
-#define CONVERT_H
+// mathutil.h
+#ifndef MATHUTIL_H
+#define MATHUTIL_H
 
 /*
 	Function declarations

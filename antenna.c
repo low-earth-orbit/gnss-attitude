@@ -3,13 +3,12 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
-#include "convert.h" // Coordinate transformation methods
+#include "mathutil.h" // math utilities
 /*
 
 Information for users of this program:
 1. Modify the below configuration if necessary
-2. Do a sanity check for the input file. Input file should closely resemble "input_example.txt".
-	Input file should not contain satellites without azimuth, elevation or SNR information.
+2. Input file should not contain satellites without azimuth, elevation or SNR information.
 
 gcc antenna.c convert.c -lm -o antenna
 ./antenna > output.txt

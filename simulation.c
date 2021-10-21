@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include <math.h>
-#include "convert.h" // Coordinate transformation methods
+#include "mathutil.h" // Coordinate transformation methods
 /*
 This program simulates the satellite-antenna geometry.
 
