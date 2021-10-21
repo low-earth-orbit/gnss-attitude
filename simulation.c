@@ -124,7 +124,7 @@ int main (void) {
 		if (numVisPt !=0){
 			for (int j = 0; j < numVisPt; j ++){
 				/* compute SNR by assumed relationship between SNR and off-boresight angle */
-				spd = spDist(visSat[j].x, visSat[j].y, visSat[j].z, 0, -cos(deg2rad(antEl)), sin(deg2rad(antEl))); // this spd is off-boresight angle
+				spd = spDist(visSat[j].x, visSat[j].y, visSat[j].z, 0, -cos(deg2rad(antEl)), sin(deg2rad(antEl))); // this spd is off-boresight angle in rad
 				snr = (MAX_SNR-MIN_SNR)*cos(spd)+MIN_SNR; // cosine relationship is default (preferred), other options below
 				//snr = ((MIN_SNR - MAX_SNR)/8100)*pow(rad2deg(spd),2) + MAX_SNR; // quadratic
 				//snr = MAX_SNR - ( (M_PI*0.5 - spd) / (0.5*M_PI))*(MAX_SNR - MIN_SNR); // linear 
