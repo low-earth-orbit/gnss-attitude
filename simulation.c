@@ -119,7 +119,7 @@ int main (void) {
 			fprintf(stderr, "malloc() failed for creating visSat\n");
 			exit(-1);
 		}
-		srand(time(0)+i);// set seed for rand()
+		srand(time(NULL));// set seed for rand()
 		numVisPt = rpVisSat(visSat, numSat, antEl);
 		if (numVisPt !=0){
 			for (int j = 0; j < numVisPt; j ++){
@@ -132,7 +132,7 @@ int main (void) {
 				visSat[j].snr = snr;
 				
 				/* apply SNR variation */
-				srand(time(0)+i*j);
+				//printf("%lf\n", randNormal());
 				snrAdd = randNormal()*(MIN_SNR_STD + ( spd / (0.5*M_PI))*(MAX_SNR_STD - MIN_SNR_STD)); // assume linear relationship between variation of SNR and off-boresight angle 
 				visSat[j].snr += snrAdd;
 				//printf("%lf, %lf\n", spd, visSat[j].snr);
