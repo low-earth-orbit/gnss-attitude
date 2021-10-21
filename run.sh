@@ -9,7 +9,7 @@ echo "============== run simulation =============="
 sleep 2s
 echo "============== DONE! =============="
 echo "============== compile antenna =============="
-gcc antenna.c mathutil.c -lm -o antenna
+gcc -Wall antenna.c mathutil.c -o antenna -lgsl -lgslcblas -lm
 sleep 1s
 echo "============== DONE! =============="
 echo "============== run antenna =============="
