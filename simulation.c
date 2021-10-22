@@ -18,7 +18,7 @@ Therefore, there are two hemispheres. When the antenna is pointing up at a 90 de
 
 The assumption of this simulation is that GNSS satellites are randomly distributed on the celestial sphere.
 
-gcc simulation.c mathutil.c -lm -o simulation
+gcc -Wall simulation.c mathutil.c -lm -o simulation
 ./simulation > input.txt
 */
 

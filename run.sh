@@ -1,7 +1,7 @@
 #!/bin/bash
 echo "GNSS Single Antenna Attitude Determination"
 echo "============== compile simulation =============="
-gcc simulation.c mathutil.c -lm -o simulation
+gcc -Wall simulation.c mathutil.c -lm -o simulation
 sleep 1s
 echo "============== DONE! =============="
 echo "============== run simulation =============="
