@@ -19,7 +19,7 @@ gcc -Wall antenna.c mathutil.c -o antenna -lgsl -lgslcblas -lm
 
 /* Configuration */
 #define INPUT_FILE_PATH "input.txt"
-#define MAX_NUM_EPOCHES 86400
+#define MAX_NUM_EPOCHES 1000
 
 /* Usually no need to change*/
 #define MAX_NUM_SAT_EPOCH 100 // maximum number of satellites visible in an epoch
@@ -35,11 +35,11 @@ typedef struct {
 	double az;
 	double el;
 	double snr;
-} Sat; // satellite signal
+} Sat;
 
 typedef struct {
 	char* time;
-	Sat* satArrayInEpoch; // array of satellites with the same time
+	Sat* satArrayInEpoch;
 	int numSat;
 	// Sol* solutionArray;
 } Epoch;
@@ -64,10 +64,8 @@ Epoch createEpoch(char* time, Sat* satArrayInEpoch, int numSat) {
 
 bool isStrInArray(char* str, char** array, int index) {
 	for (int i = 0; i < index; i++) {
-		if(strcmp(str, array[i]) == 0) {
-			// If duplicate str entry found
+		if(strcmp(str, array[i]) == 0)
 			return true;
-		}
 	}
 	return false;
 }
@@ -88,6 +86,7 @@ char* concat(const char* str1, const char* str2)
 	return str;
 }
 
+/*
 void printEpochArray(Epoch* epochArray, int numEpoch) {
  	for (int i = 0; i < numEpoch; i++) {
 		printf("======== Epoch %s contains %i satellites/signals ========\n", epochArray[i].time, epochArray[i].numSat);
@@ -96,6 +95,7 @@ void printEpochArray(Epoch* epochArray, int numEpoch) {
 		}
 	}
 }
+*/
 
 int main (void) {
 	/*
@@ -354,22 +354,7 @@ int main (void) {
 		
 		#define C(i) (gsl_vector_get(c,(i)))
 		#define COV(i,j) (gsl_matrix_get(cov,(i),(j)))
-		/* Least squares result
-		{
-			printf ("# best fit: Y = %g + %g X + %g X^2\n",
-					C(0), C(1), C(2));
 
-			printf ("# covariance matrix:\n");
-			printf ("[ %+.5e, %+.5e, %+.5e  \n",
-					   COV(0,0), COV(0,1), COV(0,2));
-			printf ("  %+.5e, %+.5e, %+.5e  \n",
-					   COV(1,0), COV(1,1), COV(1,2));
-			printf ("  %+.5e, %+.5e, %+.5e ]\n",
-					   COV(2,0), COV(2,1), COV(2,2));
-			printf ("# chisq = %g\n", chisq);
-		}
-		*/
-		
 		/* save best fit */
 		xyzSol[i][0] = C(0);
 		xyzSol[i][1] = C(1);
@@ -381,8 +366,7 @@ int main (void) {
 		gsl_vector_free (c);
 		gsl_matrix_free (cov);
 		
-		/* normalize the resulting vector to get xyz solution*/		
-		//printf("Before normalize %s,%i,%lf,%lf,%lf\n", epochArray[i].time, epochArray[i].numSat, xyzSol[i][0], xyzSol[i][1], xyzSol[i][2]);
+		/* normalize the resulting vector to get xyz solution*/
 		normalizeXyz(xyzSol[i]);
 		
 		/* from xyz solution derive azimuth-elevation solution */
@@ -435,9 +419,8 @@ int main (void) {
 			This is because the arrays are not fully propagated; e.g. MAX_NUM_SIGNALS < actual num of signals
 			Could use calloc() instead of malloc()
 	*/
-	for (int i = 0; i < MAX_NUM_EPOCHES; i++) {
+	for (int i = 0; i < MAX_NUM_EPOCHES; i++)
 		free(timeArray[i]);
-	}
 	free(timeArray);
 	
  	for (int i = 0; i < MAX_NUM_SIGNALS; i++) {
