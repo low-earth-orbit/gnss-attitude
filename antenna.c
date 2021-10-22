@@ -131,7 +131,7 @@ int main (void) {
 	}
 	
 	int satArrayIndex = 0;
-	int timeArrayIndex = 0; // epoch array index is the same, or number of epochs
+	int timeArrayIndex = 0;
 	
 	/*
 		open file for reading
@@ -198,13 +198,17 @@ int main (void) {
 			1) create an Epoch object;
 			2) load it to epochArray
 	*/
+	int epochArrayIndex = 0; // number epoch can be less than number of unique time 
  	for (int i = 0; i < timeArrayIndex; i++) {
+
 		Sat* epochSatArray = (Sat*)malloc(MAX_NUM_SAT_EPOCH*sizeof(Sat));
 		if (epochSatArray == NULL) {
 			fprintf(stderr, "malloc() failed for creating epochSatArray\n");
 			exit(-1);
 		}
-		
+		/*
+			Count number of sat in the array
+		*/
 		int epochSatArrayIndex = 0;
 		for (int j = 0; j < satArrayIndex; j++){
 			if (strcmp(timeArray[i], satArray[j].time)==0) {
@@ -212,22 +216,30 @@ int main (void) {
 				epochSatArrayIndex++;
 			}
 		}
-		Epoch epochObj = createEpoch(timeArray[i], epochSatArray, epochSatArrayIndex); 
-		epochArray[i] = epochObj;
+		
+		if (epochSatArrayIndex >= 3) {// if an epoch has fewer than 3 sat, do not record the epoch
+			Epoch epochObj = createEpoch(timeArray[i], epochSatArray, epochSatArrayIndex); 
+			epochArray[epochArrayIndex] = epochObj;
+			epochArrayIndex++;
+		}
+		else {
+			free(epochSatArray);
+		}
+
 	}
-	//printEpochArray(epochArray, timeArrayIndex);
+	//printEpochArray(epochArray, epochArrayIndex);
 	
 	/*
 		Duncan's method (Duncan & Dunn, 1998) -- Vector sum of signal-to-noise ratio (SNR) weighted line-of-sight (LOS) vectors
 	*/
-	double xyzDun[timeArrayIndex][MAX_NUM_SAT_EPOCH][3];
-	double xyzDunSol[timeArrayIndex][3]; // xyz solution array
-	double aeDunSol[timeArrayIndex][2]; // ae solution array
+	double xyzDun[epochArrayIndex][MAX_NUM_SAT_EPOCH][3];
+	double xyzDunSol[epochArrayIndex][3]; // xyz solution array
+	double aeDunSol[epochArrayIndex][2]; // ae solution array
 
 	// print header of the output
 	printf("================== Duncan's method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
 
-	for (int i = 0; i < timeArrayIndex; i++) {
+	for (int i = 0; i < epochArrayIndex; i++) {
 		for (int j = 0; j < epochArray[i].numSat; j++){
 			/* calculate LOS vector from azimuth and elevation*/
 			ae2xyz(epochArray[i].satArrayInEpoch[j].az, epochArray[i].satArrayInEpoch[j].el, xyzDun[i][j]); 
@@ -257,14 +269,14 @@ int main (void) {
 	/*
 		Geometry method -- Vector sum of non-weighted line-of-sight (LOS) vectors with geometry adjustment for elevation angle. Duncan's method is biased toward the spherical area where the satellite signals come from. If the antenna's elevation angle is negative, Duncan's method yields a positive elevation angle estimate. This method is designed by the author of the program to address the geometry issue existing in Duncan's method.
 	*/
-	double xyzGeo[timeArrayIndex][MAX_NUM_SAT_EPOCH][3];
-	double xyzGeoSol[timeArrayIndex][3]; // xyz solution array
-	double aeGeoSol[timeArrayIndex][2]; // ae solution array
+	double xyzGeo[epochArrayIndex][MAX_NUM_SAT_EPOCH][3];
+	double xyzGeoSol[epochArrayIndex][3]; // xyz solution array
+	double aeGeoSol[epochArrayIndex][2]; // ae solution array
 
 	// print header of the output
 	printf("================== Geometry method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
 
-	for (int i = 0; i < timeArrayIndex; i++) {
+	for (int i = 0; i < epochArrayIndex; i++) {
 		for (int j = 0; j < epochArray[i].numSat; j++){
 			/* calculate LOS vector from azimuth and elevation*/
 			ae2xyz(epochArray[i].satArrayInEpoch[j].az, epochArray[i].satArrayInEpoch[j].el, xyzGeo[i][j]); 
@@ -295,24 +307,23 @@ int main (void) {
 	/*
 		Axelrad's method (1999) -- Compared to Duncan's method, this is the proper use of SNR in determining antenna boresight vector. It requires antenna gain mapping (the relationship between off-boresight angle and SNR for the antenna) and adjustment to measured SNR.
 	*/
-	double xyz[timeArrayIndex][MAX_NUM_SAT_EPOCH][3];// line of sight vectors 
-	double xyzSol[timeArrayIndex][3]; // xyz solution array
-	double aeSol[timeArrayIndex][2]; // ae solution array
+	double xyz[epochArrayIndex][MAX_NUM_SAT_EPOCH][3];// line of sight vectors 
+	double xyzSol[epochArrayIndex][3]; // xyz solution array
+	double aeSol[epochArrayIndex][2]; // ae solution array
 	
 	// print header of the output
 	printf("================== Axelrad's method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
-	for (int i = 0; i < timeArrayIndex; i++) {
+	for (int i = 0; i < epochArrayIndex; i++) {
 		
 		/*	
 			Observation equation: transpose(s) b = cos(alpha) 
 										corresponds to X c = y below
 			See GNU Scientific Library Reference Manual for more: https://www.gnu.org/software/gsl/doc/html/lls.html#examples
 		*/
-		int n;
+		int n = epochArray[i].numSat; // number of observations
 		double chisq;
 		gsl_matrix *X, *cov;
 		gsl_vector *y, *w, *c;
-		n = epochArray[i].numSat; // number of observations
 		X = gsl_matrix_alloc (n, 3);
 		y = gsl_vector_alloc (n); // n*1 matrix
 		w = gsl_vector_alloc (n); // n*n matrix
@@ -395,7 +406,7 @@ int main (void) {
 		double rms;
 		double sum = 0;
 		
-		for (int i = 0; i < timeArrayIndex; i++) {
+		for (int i = 0; i < epochArrayIndex; i++) {
 			double trueAntennaXyz[3];
 			ae2xyz(TRUE_AZ,TRUE_EL,trueAntennaXyz);
 			sumDun += pow(spDist(xyzDunSol[i][0], xyzDunSol[i][1], xyzDunSol[i][2], trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]),2);
@@ -404,16 +415,16 @@ int main (void) {
 			
 		}
 		
-		rmsDun = sqrt(sumDun/timeArrayIndex);
+		rmsDun = sqrt(sumDun/epochArrayIndex);
 		rmsDun = rad2deg(rmsDun);
 		
-		rmsGeo = sqrt(sumGeo/timeArrayIndex);
+		rmsGeo = sqrt(sumGeo/epochArrayIndex);
 		rmsGeo = rad2deg(rmsGeo);
 		
-		rms = sqrt(sum/timeArrayIndex);
+		rms = sqrt(sum/epochArrayIndex);
 		rms = rad2deg(rms);
 		
-		printf ("================== Statistics ==================\n%i epochs, antenna @ %i deg\nRMS Duncan's method = %lf deg\nRMS Geometry method = %lf deg\nRMS Axelrad's method = %lf deg\n", timeArrayIndex, TRUE_EL, rmsDun, rmsGeo, rms);
+		printf ("================== Statistics ==================\n%i epochs, antenna @ %i deg\nRMS Duncan's method = %lf deg\nRMS Geometry method = %lf deg\nRMS Axelrad's method = %lf deg\n", epochArrayIndex, TRUE_EL, rmsDun, rmsGeo, rms);
 	}
 
 
