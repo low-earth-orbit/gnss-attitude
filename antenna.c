@@ -19,11 +19,11 @@ gcc -Wall antenna.c mathutil.c -o antenna -lgsl -lgslcblas -lm
 
 /* Configuration */
 #define INPUT_FILE_PATH "input.txt"
-#define MAX_NUM_EPOCH 1000
 
 /* Usually no need to change*/
+#define MAX_NUM_EPOCH 1000
 #define MAX_NUM_SAT_EPOCH 100 // maximum number of satellites visible in an epoch
-#define MAX_NUM_SIGNALS MAX_NUM_EPOCH *MAX_NUM_SAT_EPOCH
+#define MAX_NUM_SIGNAL (MAX_NUM_EPOCH * MAX_NUM_SAT_EPOCH)
 #define MAX_NUM_CHAR_LINE 100 // num of char in each record or line
 #define NUM_CHAR_DATE 10
 #define NUM_CHAR_TIME 10
@@ -133,7 +133,7 @@ int main(void)
 		}
 	}
 
-	satArray = (Sat *)malloc(MAX_NUM_SIGNALS * sizeof(Sat));
+	satArray = (Sat *)malloc(MAX_NUM_SIGNAL * sizeof(Sat));
 	if (satArray == NULL)
 	{
 		fprintf(stderr, "malloc() failed for creating satArray\n");
@@ -296,7 +296,7 @@ int main(void)
 	}
 
 	/*
-		Geometry method -- Vector sum of non-weighted line-of-sight (LOS) vectors with geometry adjustment for elevation angle. Duncan's method is biased toward the spherical area where the satellite signals come from. If the antenna's elevation angle is negative, Duncan's method yields a positive elevation angle estimate. This method is designed by the author of the program to address the geometry issue existing in Duncan's method.
+		Geometry method -- vector sum of non-weighted line-of-sight (LOS) vectors with geometry adjustment for elevation angle. Duncan's method is biased toward the spherical area where the satellite signals come from. If the antenna's elevation angle is negative, Duncan's method yields a positive elevation angle estimate. This method is designed by the author of the program to address the geometry issue existing in Duncan's method.
 	*/
 	double xyzGeo[epochArrayIndex][MAX_NUM_SAT_EPOCH][3];
 	double xyzGeoSol[epochArrayIndex][3];
@@ -345,7 +345,7 @@ int main(void)
 	{
 
 		/*	
-			Observation equation transpose(s) b = cos(alpha) corresponds to X c = y below
+			Observation equation X*b = cos(a) corresponds to X*c = y below
 			See GNU Scientific Library Reference Manual for more: https://www.gnu.org/software/gsl/doc/html/lls.html
 		*/
 		int n = epochArray[i].numSat; // number of observations
@@ -363,18 +363,18 @@ int main(void)
 			/* calculate LOS vector from azimuth and elevation*/
 			ae2xyz(epochArray[i].satArrayInEpoch[j].az, epochArray[i].satArrayInEpoch[j].el, xyz[i][j]);
 
-			/* get sigma of cos(alpha) to be used in weight matrix W */
+			/* get sigma of cos(a) to be used in weight matrix W */
 			double sigmaSnr = 0.5 + (3 - 0.5) * (epochArray[i].satArrayInEpoch[j].snr - 35) / (50 - 35);
 			if (sigmaSnr < 0.5)
-				sigmaSnr = 0.5;														   // catch the case that sigma <= 0
-			double sigma = sigmaSnr / 15.0;											   // uncertainty is a function of SNR
-			double cosAlpha = (epochArray[i].satArrayInEpoch[j].snr - 35) / (50 - 35); // the mapping function is snr = (MAX_SNR-MIN_SNR)*cos(spd)+MIN_SNR;
+				sigmaSnr = 0.5;													   // catch the case that sigma <= 0
+			double sigma = sigmaSnr / 15.0;										   // uncertainty is a function of SNR
+			double cosA = (epochArray[i].satArrayInEpoch[j].snr - 35) / (50 - 35); // the mapping function is snr = (MAX_SNR-MIN_SNR)*cos(spd)+MIN_SNR;
 
 			// Set each observation equation
 			gsl_matrix_set(X, j, 0, xyz[i][j][0]);
 			gsl_matrix_set(X, j, 1, xyz[i][j][1]);
 			gsl_matrix_set(X, j, 2, xyz[i][j][2]);
-			gsl_vector_set(y, j, cosAlpha);
+			gsl_vector_set(y, j, cosA);
 			gsl_vector_set(w, j, 1.0 / (sigma * sigma));
 		}
 
@@ -442,14 +442,14 @@ int main(void)
 	/*
 		free()
 			This notice from valgrind is normal: Conditional jump or move depends on uninitialized value(s)
-			This is because the arrays are not fully propagated; e.g. MAX_NUM_SIGNALS < actual num of signals
+			This is because the arrays are not fully propagated; e.g. MAX_NUM_SIGNAL < actual num of signals
 			Could use calloc() instead of malloc()
 	*/
 	for (int i = 0; i < MAX_NUM_EPOCH; i++)
 		free(timeArray[i]);
 	free(timeArray);
 
-	for (int i = 0; i < MAX_NUM_SIGNALS; i++)
+	for (int i = 0; i < MAX_NUM_SIGNAL; i++)
 	{
 		free(satArray[i].time);
 		free(satArray[i].satName);
