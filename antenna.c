@@ -15,6 +15,7 @@ Information for users of this program:
 
 gcc -Wall antenna.c mathutil.c -o antenna -lgsl -lgslcblas -lm
 ./antenna > output.txt
+valgrind --leak-check=full -s ./antenna
 */
 
 /* Configuration */
@@ -44,7 +45,7 @@ typedef struct Epoch
 {
 	char *time;
 	Sat **satArrayInEpoch;
-	int numSat;
+	int *numSat;
 	// Sol* solutionArray;
 } Epoch;
 
@@ -59,7 +60,7 @@ Sat *createSat(char *time, char *satName, double *az, double *el, double *snr)
 	return satObj;
 }
 
-Epoch *createEpoch(char *time, Sat **satArrayInEpoch, int numSat)
+Epoch *createEpoch(char *time, Sat **satArrayInEpoch, int *numSat)
 {
 	Epoch *epochObj = malloc(sizeof(Epoch));
 	(*epochObj).time = time;
@@ -101,8 +102,8 @@ void printEpochArray(Epoch **epochArray, long int numEpoch)
 
 	for (long int i = 0; i < numEpoch; i++)
 	{
-		printf("======== Epoch %s contains %i satellites/signals ========\n", (*epochArray[i]).time, (*epochArray[i]).numSat);
-		double n = (*epochArray[i]).numSat;
+		int n = *(epochArray[i]->numSat);
+		printf("======== Epoch %s contains %i satellites/signals ========\n", (*epochArray[i]).time, n + 1);
 		for (int j = 0; j < n; j++)
 			printf("%s\t%s\t%lf\t%lf\t%lf\n", (*epochArray[i]).satArrayInEpoch[j]->time, (*epochArray[i]).satArrayInEpoch[j]->satName, *(*epochArray[i]).satArrayInEpoch[j]->az, *(*epochArray[i]).satArrayInEpoch[j]->el, *(*epochArray[i]).satArrayInEpoch[j]->snr);
 	}
@@ -173,32 +174,18 @@ int main(void)
 			timeArrayIndex++;
 		}
 
-		Sat *satObj = createSat(time, satName, az, el, snr);
-		satArray[satArrayIndex] = satObj; // Add each sat to sat array
-
+		satArray[satArrayIndex] = createSat(time, satName, az, el, snr); // Add each sat to sat array
 		satArrayIndex++;
 
 		free(time1);
-		free(time2);
-		/*
-		time1 = NULL;
-		time2 = NULL;
-		time = NULL;
-		satName = NULL;
-		az = NULL;
-		el = NULL;
-		snr = NULL;
-		satObj = NULL;
-		*/
-		//free(satName);
-		//free(az);
-		//free(el);
-		//free(snr);
-		//free(satObj);
+		free(time2); // free memory because time1 and time2 are concatenated to a new char* time
+					 //time1 = time2 = time = satName = NULL; // pointer safe to set to null because they are accessible by satArray[i] as its elements
+					 //az = el = snr = NULL;
 	}
 	fclose(fp);
 	free(line);
-	printf("timeArrayIndex = %li satArrayIndex = %li\n", timeArrayIndex, satArrayIndex);
+
+	//printf("timeArrayIndex = %li satArrayIndex = %li\n", timeArrayIndex, satArrayIndex);
 
 	/* 
 		epochArray
@@ -218,72 +205,65 @@ int main(void)
 		/*
 			Count number of sat in the array
 		*/
-		int epochSatArrayIndex = 0;
+		int *epochSatArrayIndex = (int *)malloc(sizeof(int));
+		*epochSatArrayIndex = 0;
 		for (long int j = 0; j < satArrayIndex; j++)
 		{
 			if (strcmp(timeArray[i], satArray[j]->time) == 0)
 			{
 				//printf("i = %li j = %li\n", i, j);
 				//printf("epoch = %s\n", satArray[j]->time);
-				epochSatArray[epochSatArrayIndex] = satArray[j];
+				epochSatArray[*epochSatArrayIndex] = satArray[j];
 				//printf("epoch = %lf\n", *epochSatArray[epochSatArrayIndex]->snr);
 
-				epochSatArrayIndex++;
+				*epochSatArrayIndex = *epochSatArrayIndex + 1;
 			}
 		}
 
-		if (epochSatArrayIndex >= 3)
+		if (*epochSatArrayIndex >= 3)
 		{ // if an epoch has fewer than 3 sat, do not record the epoch
 			epochArray[epochArrayIndex] = createEpoch(timeArray[i], epochSatArray, epochSatArrayIndex);
-			printf("epochArrayIndex = %i\n", epochSatArrayIndex);
+			//printf("epochArrayIndex = %i\n", *epochSatArrayIndex);
 			//printf("%s\t%s\t%lf\t%lf\t%lf\n", (*epochArray[i]).satArrayInEpoch[0].time, (*epochArray[i]).satArrayInEpoch[0].satName, *(*epochArray[i]).satArrayInEpoch[0].az, *(*epochArray[i]).satArrayInEpoch[0].el, *(*epochArray[i]).satArrayInEpoch[0].snr);
 			epochArrayIndex++;
 		}
+		else
+		{
+			free(epochSatArray);
+			free(epochSatArrayIndex);
+		}
 	}
 
-	//for (long int i = 0; i < epochArrayIndex; i++)
-	//{
-	//printf("======== Epoch %s contains %i satellites/signals ========\n", (*epochArray[i]).time, (*epochArray[i]).numSat);
-	//double n = (*epochArray[i]).numSat;
-
-	/******************** seg fault here *******************************/
-	//printf("%lf\n", *(*epochArray[0]).satArrayInEpoch[1]->snr);
-	//for (int j = 0; j < n; j++)
-	//{
-	//printf("%lf\n", *(*epochArray[i]).satArrayInEpoch[j].snr);
-	//printf("%s\t%s\t%lf\t%lf\t%lf\n", (*epochArray[i]).satArrayInEpoch[j].time, (*epochArray[i]).satArrayInEpoch[j].satName, *(*epochArray[i]).satArrayInEpoch[j].az, *(*epochArray[i]).satArrayInEpoch[j].el, *(*epochArray[i]).satArrayInEpoch[j].snr);
-	//}
-	//}
-
 	printEpochArray(epochArray, epochArrayIndex);
+	//printf("sizeof(Sat) = %li\n", sizeof(Sat));
+	//printf("sizeof(Epoch) = %li\n", sizeof(Epoch));
 
-	//	printf("%s\t%s\t%lf\t%lf\t%lf\n", epochArray[i]->satArrayInEpoch[j].time, epochArray[i]->satArrayInEpoch[j].satName, *(epochArray[i]->satArrayInEpoch[j].az), *(epochArray[i]->satArrayInEpoch[j].el), *(epochArray[i]->satArrayInEpoch[j].snr));
 	///////////////////////////////////////////////////////////////////////deleted
 	/*
 		free()
-			This notice from valgrind is normal: Conditional jump or move depends on uninitialized value(s)
-			This is because the arrays are not fully propagated; e.g. MAX_NUM_SIGNAL < actual num of signals
-			Could use calloc() instead of malloc()
-	
-	for (long int i = 0; i < MAX_NUM_EPOCH; i++)
-		free(timeArray[i]);
-	free(timeArray);
+	*/
+	free(timeArray); // element of this element, time, will be freed in satArray[i]->time
 
-	for (long int i = 0; i < MAX_NUM_SIGNAL; i++)
+	for (long int i = 0; i < satArrayIndex; i++)
 	{
+		free(satArray[i]->time);
 		free(satArray[i]->satName);
 		free(satArray[i]->az);
 		free(satArray[i]->el);
-		free(satArray[i]->snr);
-		free(satArray[i]);
+		free(satArray[i]->snr); // free attributes
+		free(satArray[i]);		// free element
 	}
+	free(satArray); // free satArray
 
-	free(satArray);
-
-	for (long int i = 0; i < MAX_NUM_EPOCH; i++)
-		free(epochArray[i]->satArrayInEpoch);
+	for (long int i = 0; i < epochArrayIndex; i++)
+	{
+		// time freed in satArray[i]
+		free(epochArray[i]->satArrayInEpoch); // satArrayInEpoch[i] freed in satArray[i]
+		free(epochArray[i]->numSat);
+		free(epochArray[i]); // free element
+	}
 	free(epochArray);
-*/
+
 	/*
 		exit
 	*/
