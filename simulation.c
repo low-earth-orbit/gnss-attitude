@@ -111,8 +111,8 @@ int main(void)
 	int antEl = TRUE_EL; // Antenna boresight elevation angle
 	// While elevation angle is adjustable, antenna azimuth is simulated at 180 deg by rpVisSat()
 	// Boresight vector is (0, -cos(antEl), sin(antEl))
-	int numEpoch = 1000; // number of simulated epoch
-	int numSat = 100;	 // number of GNSS satellites globally available
+	int numEpoch = NUM_EPOCH; // number of simulated epoch
+	int numSat = 100;	  // number of GNSS satellites globally available
 	const double MAX_SNR = 50;
 	const double MIN_SNR = 35; // Set max and min snr values for snr computation
 	const double MAX_SNR_STD = 3;

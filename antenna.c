@@ -19,9 +19,9 @@ gcc -Wall antenna.c mathutil.c -o antenna -lgsl -lgslcblas -lm
 
 /* Configuration */
 #define INPUT_FILE_PATH "input.txt"
+#define MAX_NUM_EPOCH NUM_EPOCH
 
 /* Usually no need to change*/
-#define MAX_NUM_EPOCH 10000
 #define MAX_NUM_SAT_EPOCH 100 // maximum number of satellites visible in an epoch
 #define MAX_NUM_SIGNAL (MAX_NUM_EPOCH * MAX_NUM_SAT_EPOCH)
 #define MAX_NUM_CHAR_LINE 100 // num of char in each record or line
