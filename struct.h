@@ -25,5 +25,6 @@ typedef struct Sol
 Sat *createSat(char *time, char *satName, double *az, double *el, double *snr);
 Epoch *createEpoch(char *time, Sat **epochSatArray, int *numSat);
 Sol *createSol(double *x, double *y, double *z, double *az, double *el);
+void printEpochArray(Epoch **epochArray, long int numEpoch);
 
 #endif
