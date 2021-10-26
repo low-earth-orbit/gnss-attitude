@@ -39,11 +39,13 @@ void normalizeXyz(double *xyz)
 void normalize(Sol *sol)
 {
 	double len = sqrt(pow(*sol->x, 2) + pow(*sol->y, 2) + pow(*sol->z, 2));
+	printf("%lf,%lf,%lf\n", *sol->x, *sol->y, *sol->z);
+	printf("length = %lf\n", len);
 	if (len != 0)
 	{
 		*sol->x /= len;
-		*sol->x /= len;
-		*sol->x /= len;
+		*sol->y /= len;
+		*sol->z /= len;
 	}
 }
 
