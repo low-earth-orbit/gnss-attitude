@@ -1,13 +1,41 @@
 /*
-gcc mathutil.c -lm -o mathutil
+gcc util.c struct.c -lm -o util
 */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
-#include "mathutil.h"
+#include "util.h"
 #include "struct.h"
+
+bool isStrInArray(char *str, char **array, long int index)
+{
+	for (long int i = 0; i < index; i++)
+	{
+		if (strcmp(str, array[i]) == 0)
+			return true;
+	}
+	return false;
+}
+
+char *concat(const char *str1, const char *str2)
+{
+	char *str;
+	str = (char *)malloc(strlen(str1) + strlen(str2) + 2);
+	// +1 for the null-terminator; +1 for the seperator
+	if (str == NULL)
+	{
+		fprintf(stderr, "malloc() failed in concat()\n");
+	}
+	else
+	{
+		strcpy(str, str1);
+		strcat(str, " ");
+		strcat(str, str2);
+	}
+	return str;
+}
 
 double deg2rad(double deg)
 {
@@ -39,8 +67,8 @@ void normalizeXyz(double *xyz)
 void normalize(Sol *sol)
 {
 	double len = sqrt(pow(*sol->x, 2) + pow(*sol->y, 2) + pow(*sol->z, 2));
-	printf("%lf,%lf,%lf\n", *sol->x, *sol->y, *sol->z);
-	printf("length = %lf\n", len);
+	//printf("%lf,%lf,%lf\n", *sol->x, *sol->y, *sol->z);
+	//printf("length = %lf\n", len);
 	if (len != 0)
 	{
 		*sol->x /= len;

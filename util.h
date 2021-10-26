@@ -1,9 +1,11 @@
-#ifndef MATHUTIL_H
-#define MATHUTIL_H
+#ifndef UTIL_H
+#define UTIL_H
 #include "struct.h"
 /*
 	Function declarations
 */
+bool isStrInArray(char *str, char **array, long int index);
+char *concat(const char *str1, const char *str2);
 double deg2rad(double deg);
 double rad2deg(double rad);
 void normalizeXyz(double *xyz);

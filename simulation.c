@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include <math.h>
-#include "mathutil.h"
+#include "util.h"
 #include "truth.h"
 #include "struct.h"
 
