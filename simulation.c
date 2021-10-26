@@ -4,8 +4,9 @@
 #include <stdbool.h>
 #include <time.h>
 #include <math.h>
-#include "mathutil.h"
+#include "util.h"
 #include "truth.h"
+#include "struct.h"
 
 /*
 This program simulates the satellite-antenna geometry.
@@ -18,7 +19,7 @@ Therefore, there are two hemispheres. When the antenna is pointing up at a 90 de
 
 The assumption of this simulation is that GNSS satellites are randomly distributed on the celestial sphere.
 
-gcc -Wall simulation.c mathutil.c -lm -o simulation
+gcc -Wall simulation.c mathutil.c struct.c -lm -o simulation
 ./simulation > input.txt
 */
 
@@ -111,8 +112,8 @@ int main(void)
 	int antEl = TRUE_EL; // Antenna boresight elevation angle
 	// While elevation angle is adjustable, antenna azimuth is simulated at 180 deg by rpVisSat()
 	// Boresight vector is (0, -cos(antEl), sin(antEl))
-	int numEpoch = 1000; // number of simulated epoch
-	int numSat = 100;	 // number of GNSS satellites globally available
+	int numEpoch = NUM_EPOCH; // number of simulated epoch
+	int numSat = 100;		  // number of GNSS satellites globally available
 	const double MAX_SNR = 50;
 	const double MIN_SNR = 35; // Set max and min snr values for snr computation
 	const double MAX_SNR_STD = 3;

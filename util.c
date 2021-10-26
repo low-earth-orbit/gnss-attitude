@@ -1,12 +1,41 @@
 /*
-gcc mathutil.c -lm -o mathutil
+gcc util.c struct.c -lm -o util
 */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
-#include "mathutil.h"
+#include "util.h"
+#include "struct.h"
+
+bool isStrInArray(char *str, char **array, long int index)
+{
+	for (long int i = 0; i < index; i++)
+	{
+		if (strcmp(str, array[i]) == 0)
+			return true;
+	}
+	return false;
+}
+
+char *concat(const char *str1, const char *str2)
+{
+	char *str;
+	str = (char *)malloc(strlen(str1) + strlen(str2) + 2);
+	// +1 for the null-terminator; +1 for the seperator
+	if (str == NULL)
+	{
+		fprintf(stderr, "malloc() failed in concat()\n");
+	}
+	else
+	{
+		strcpy(str, str1);
+		strcat(str, " ");
+		strcat(str, str2);
+	}
+	return str;
+}
 
 double deg2rad(double deg)
 {
@@ -33,6 +62,22 @@ void normalizeXyz(double *xyz)
 }
 
 /*
+	normalize xyz in Sol
+*/
+void normalize(Sol *sol)
+{
+	double len = sqrt(pow(*sol->x, 2) + pow(*sol->y, 2) + pow(*sol->z, 2));
+	//printf("%lf,%lf,%lf\n", *sol->x, *sol->y, *sol->z);
+	//printf("length = %lf\n", len);
+	if (len != 0)
+	{
+		*sol->x /= len;
+		*sol->y /= len;
+		*sol->z /= len;
+	}
+}
+
+/*
 	Input: azimuth and elevation in degrees
 	Output: array of the resulting UNIT vector (x, y, z)
 */
@@ -46,6 +91,18 @@ void ae2xyz(double az_deg, double el_deg, double *xyz)
 	xyz[0] = x;
 	xyz[1] = y;
 	xyz[2] = z;
+}
+
+void ae2xyzSol(double az_deg, double el_deg, Sol *sol)
+{
+	double az = deg2rad(az_deg);
+	double el = deg2rad(el_deg);
+	double x = cos(el) * sin(az);
+	double y = cos(el) * cos(az);
+	double z = sin(el);
+	*sol->x = x;
+	*sol->y = y;
+	*sol->z = z;
 }
 
 /*
@@ -81,6 +138,36 @@ void xyz2ae(double x, double y, double z, double *azel)
 	el = rad2deg(el);
 	azel[0] = az;
 	azel[1] = el;
+}
+
+void xyz2aeSol(double x, double y, double z, Sol *sol)
+{
+	double az, el;
+	double r = sqrt(pow(x, 2) + pow(y, 2) + pow(z, 2));
+	if (y == 0)
+	{ // catch y=0
+		az = 90;
+		printf("Found y = 0 in xyz2ae()\n");
+	}
+	else if (x / y == M_PI / 2)
+	{			   // catch tan(pi/2)
+		az = -999; //undefined
+		printf("Found x/y = pi/2 in xyz2ae(). Az set to -999 Undefined.\n");
+	}
+	else
+	{
+		az = atan(x / y);
+		/* adjust for quadrant */
+		if (y < 0.0)
+			az += M_PI;
+		if (az < 0.0)
+			az += 2 * M_PI;
+		az = rad2deg(az);
+	}
+	el = asin(z / r); // r should not be 0
+	el = rad2deg(el);
+	*(sol->az) = az;
+	*(sol->el) = el;
 }
 
 /*
