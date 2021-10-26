@@ -6,6 +6,7 @@
 #include <gsl/gsl_multifit.h>
 #include "mathutil.h"
 #include "truth.h"
+#include "struct.h"
 
 /*
 
@@ -13,7 +14,7 @@ Information for users of this program:
 1. Modify the below configuration if necessary
 2. Input file should not contain satellites without azimuth, elevation or SNR information.
 
-gcc -Wall antenna.c mathutil.c -o antenna -lgsl -lgslcblas -lm
+gcc -Wall antenna.c mathutil.c struct.c -o antenna -lgsl -lgslcblas -lm
 ./antenna > output.txt
 valgrind --leak-check=full -s ./antenna
 */
@@ -31,43 +32,6 @@ valgrind --leak-check=full -s ./antenna
 #define NUM_CHAR_SAT 3
 #define C(i) (gsl_vector_get(c, (i)))
 #define COV(i, j) (gsl_matrix_get(cov, (i), (j)))
-
-typedef struct Sat
-{
-	char *time; // GPS time
-	char *satName;
-	double *az;
-	double *el;
-	double *snr;
-} Sat;
-
-typedef struct Epoch
-{
-	char *time;
-	Sat **satArrayInEpoch;
-	int *numSat;
-	// Sol* solutionArray;
-} Epoch;
-
-Sat *createSat(char *time, char *satName, double *az, double *el, double *snr)
-{
-	Sat *satObj = malloc(sizeof(Sat));
-	(*satObj).time = time;
-	(*satObj).satName = satName;
-	(*satObj).az = az;
-	(*satObj).el = el;
-	(*satObj).snr = snr;
-	return satObj;
-}
-
-Epoch *createEpoch(char *time, Sat **satArrayInEpoch, int *numSat)
-{
-	Epoch *epochObj = malloc(sizeof(Epoch));
-	(*epochObj).time = time;
-	(*epochObj).satArrayInEpoch = satArrayInEpoch;
-	(*epochObj).numSat = numSat;
-	return epochObj;
-}
 
 bool isStrInArray(char *str, char **array, long int index)
 {
@@ -99,13 +63,12 @@ char *concat(const char *str1, const char *str2)
 
 void printEpochArray(Epoch **epochArray, long int numEpoch)
 {
-
 	for (long int i = 0; i < numEpoch; i++)
 	{
 		int n = *(epochArray[i]->numSat);
-		printf("======== Epoch %s contains %i satellites/signals ========\n", (*epochArray[i]).time, n + 1);
+		printf("======== Epoch %s contains %i satellite signals ========\n", (*epochArray[i]).time, n + 1);
 		for (int j = 0; j < n; j++)
-			printf("%s\t%s\t%lf\t%lf\t%lf\n", (*epochArray[i]).satArrayInEpoch[j]->time, (*epochArray[i]).satArrayInEpoch[j]->satName, *(*epochArray[i]).satArrayInEpoch[j]->az, *(*epochArray[i]).satArrayInEpoch[j]->el, *(*epochArray[i]).satArrayInEpoch[j]->snr);
+			printf("%s\t%s\t%lf\t%lf\t%lf\n", (*epochArray[i]).epochSatArray[j]->time, (*epochArray[i]).epochSatArray[j]->satName, *(*epochArray[i]).epochSatArray[j]->az, *(*epochArray[i]).epochSatArray[j]->el, *(*epochArray[i]).epochSatArray[j]->snr);
 	}
 }
 
@@ -116,26 +79,13 @@ int main(void)
 	*/
 	char **timeArray; // A time array storing all unique times
 	timeArray = (char **)malloc(MAX_NUM_EPOCH * sizeof(char *));
-	/*
-	for (long int i = 0; i < MAX_NUM_EPOCH; i++)
-	{
-		timeArray[i] = (char *)malloc(NUM_CHAR_DATE + NUM_CHAR_TIME + 2);
-		timeArray[i][NUM_CHAR_DATE + NUM_CHAR_TIME + 1] = '\0';
-	}
-	*/
+
 	Sat **satArray; // A sat array storing all satellite signals
 	satArray = (Sat **)malloc(MAX_NUM_SIGNAL * sizeof(Sat *));
-	/*
-	for (long int i = 0; i < MAX_NUM_SIGNAL; i++)
-		satArray[i] = (Sat *)malloc(sizeof(Sat));
-	*/
 
 	Epoch **epochArray; // A epoch array storing all epochs
 	epochArray = (Epoch **)malloc(MAX_NUM_EPOCH * sizeof(Epoch *));
-	/*
-	for (long int i = 0; i < MAX_NUM_EPOCH; i++)
-		epochArray[i] = (Epoch *)malloc(sizeof(Epoch));
-	*/
+
 	long int satArrayIndex = 0;
 	long int timeArrayIndex = 0;
 
@@ -170,7 +120,6 @@ int main(void)
 		if (!isStrInArray(time, timeArray, timeArrayIndex))
 		{ // Check if the current time is unique
 			timeArray[timeArrayIndex] = time;
-			//printf("timeArray[timeArrayIndex] = %s\n", timeArray[timeArrayIndex]);
 			timeArrayIndex++;
 		}
 
@@ -179,13 +128,9 @@ int main(void)
 
 		free(time1);
 		free(time2); // free memory because time1 and time2 are concatenated to a new char* time
-					 //time1 = time2 = time = satName = NULL; // pointer safe to set to null because they are accessible by satArray[i] as its elements
-					 //az = el = snr = NULL;
 	}
 	fclose(fp);
 	free(line);
-
-	//printf("timeArrayIndex = %li satArrayIndex = %li\n", timeArrayIndex, satArrayIndex);
 
 	/* 
 		epochArray
@@ -197,10 +142,6 @@ int main(void)
 	for (long int i = 0; i < timeArrayIndex; i++)
 	{
 		Sat **epochSatArray = (Sat **)malloc(MAX_NUM_SAT_EPOCH * sizeof(Sat *));
-		/*
-		for (int i = 0; i < MAX_NUM_SAT_EPOCH; i++)
-			epochSatArray[i] = (Sat *)malloc(sizeof(Sat));
-		*/
 
 		/*
 			Count number of sat in the array
@@ -211,36 +152,83 @@ int main(void)
 		{
 			if (strcmp(timeArray[i], satArray[j]->time) == 0)
 			{
-				//printf("i = %li j = %li\n", i, j);
-				//printf("epoch = %s\n", satArray[j]->time);
 				epochSatArray[*epochSatArrayIndex] = satArray[j];
-				//printf("epoch = %lf\n", *epochSatArray[epochSatArrayIndex]->snr);
-
 				*epochSatArrayIndex = *epochSatArrayIndex + 1;
 			}
 		}
 
 		if (*epochSatArrayIndex >= 3)
-		{ // if an epoch has fewer than 3 sat, do not record the epoch
+		{
 			epochArray[epochArrayIndex] = createEpoch(timeArray[i], epochSatArray, epochSatArrayIndex);
-			//printf("epochArrayIndex = %i\n", *epochSatArrayIndex);
-			//printf("%s\t%s\t%lf\t%lf\t%lf\n", (*epochArray[i]).satArrayInEpoch[0].time, (*epochArray[i]).satArrayInEpoch[0].satName, *(*epochArray[i]).satArrayInEpoch[0].az, *(*epochArray[i]).satArrayInEpoch[0].el, *(*epochArray[i]).satArrayInEpoch[0].snr);
 			epochArrayIndex++;
 		}
 		else
-		{
+		{ // if an epoch has less than 3 sat, do not record the epoch
 			free(epochSatArray);
 			free(epochSatArrayIndex);
 		}
 	}
 
-	printEpochArray(epochArray, epochArrayIndex);
-	//printf("sizeof(Sat) = %li\n", sizeof(Sat));
-	//printf("sizeof(Epoch) = %li\n", sizeof(Epoch));
-
-	///////////////////////////////////////////////////////////////////////deleted
 	/*
-		free()
+		print epoch array to check file input read
+	*/
+	//printEpochArray(epochArray, epochArrayIndex);
+
+	/*
+		Duncan's method (Duncan & Dunn, 1998) -- Vector sum of signal-to-noise ratio (SNR) weighted line-of-sight (LOS) vectors
+	*/
+	Sol **dunSolArray = malloc(sizeof(Sol *) * epochArrayIndex);
+	/*
+	double xyzDun[epochArrayIndex][MAX_NUM_SAT_EPOCH][3];
+	double xyzDunSol[epochArrayIndex][3]; // E, N, U solution array
+	double aeDunSol[epochArrayIndex][2];  // azimuth elevation solution array
+	*/
+	// print header of the output
+	printf("================== Duncan's method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
+
+	for (long int i = 0; i < epochArrayIndex; i++)
+	{
+		int n = *(epochArray[i]->numSat);
+		Sol *dunSol = malloc(sizeof(Sol));
+		dunSol->x = calloc(1, sizeof(double));
+		dunSol->y = calloc(1, sizeof(double));
+		dunSol->z = calloc(1, sizeof(double));
+		dunSol->az = calloc(1, sizeof(double));
+		dunSol->el = calloc(1, sizeof(double));
+
+		for (int j = 0; j < n; j++)
+		{
+			double xyz[3];
+			/* calculate LOS vector from azimuth and elevation*/
+			ae2xyz(*(*epochArray[i]).epochSatArray[j]->az, *(*epochArray[i]).epochSatArray[j]->el, xyz);
+
+			/* weight LOS vector by SNR */
+			xyz[0] *= *(*epochArray[i]).epochSatArray[j]->snr;
+			xyz[1] *= *(*epochArray[i]).epochSatArray[j]->snr;
+			xyz[2] *= *(*epochArray[i]).epochSatArray[j]->snr;
+
+			/* add to vector sum */
+			*(dunSol->x) += xyz[0];
+			*(dunSol->y) += xyz[1];
+			*(dunSol->z) += xyz[2];
+		}
+
+		/* convert the sum to unit vector to get xyz solution*/
+		normalize(dunSol);
+
+		/* from xyz solution derive azimuth-elevation solution */
+		xyz2aeSol(*(dunSol->x), *(dunSol->y), *(dunSol->z), dunSol);
+
+		/* print result */
+		printf("%s,%i,%lf,%lf,%lf,%lf,%lf\n", (*epochArray[i]).time, *(*epochArray[i]).numSat, *(dunSol->x), *(dunSol->y), *(dunSol->z), *(dunSol->az), *(dunSol->el));
+
+		dunSolArray[i] = dunSol;
+	}
+	/////////////// OK above
+
+	/////////////////////////////////////////////////////////////////////// deleted
+	/*
+		free() file input 
 	*/
 	free(timeArray); // element of this element, time, will be freed in satArray[i]->time
 
@@ -251,18 +239,32 @@ int main(void)
 		free(satArray[i]->az);
 		free(satArray[i]->el);
 		free(satArray[i]->snr); // free attributes
-		free(satArray[i]);		// free element
+		free(satArray[i]);		// free Sat
 	}
 	free(satArray); // free satArray
 
 	for (long int i = 0; i < epochArrayIndex; i++)
 	{
 		// time freed in satArray[i]
-		free(epochArray[i]->satArrayInEpoch); // satArrayInEpoch[i] freed in satArray[i]
+		free(epochArray[i]->epochSatArray); // epochSatArray[i] freed in satArray[i]
 		free(epochArray[i]->numSat);
-		free(epochArray[i]); // free element
+		free(epochArray[i]); // free Epoch
 	}
 	free(epochArray);
+
+	/*
+		free() Duncan's solution
+	*/
+	for (long int i = 0; i < epochArrayIndex; i++)
+	{
+		free(dunSolArray[i]->x);
+		free(dunSolArray[i]->y);
+		free(dunSolArray[i]->z);
+		free(dunSolArray[i]->az);
+		free(dunSolArray[i]->el);
+		free(dunSolArray[i]);
+	}
+	free(dunSolArray);
 
 	/*
 		exit
