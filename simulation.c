@@ -5,7 +5,7 @@
 #include <time.h>
 #include <math.h>
 #include "util.h"
-#include "truth.h"
+#include "config.h"
 #include "struct.h"
 
 /*
@@ -19,7 +19,7 @@ Therefore, there are two hemispheres. When the antenna is pointing up at a 90 de
 
 The assumption of this simulation is that GNSS satellites are randomly distributed on the celestial sphere.
 
-gcc -Wall simulation.c mathutil.c struct.c -lm -o simulation
+gcc -Wall simulation.c util.c struct.c -lm -o simulation
 ./simulation > input.txt
 */
 

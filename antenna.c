@@ -5,7 +5,7 @@
 #include <math.h>
 #include <gsl/gsl_multifit.h>
 #include "util.h"
-#include "truth.h"
+#include "config.h"
 #include "struct.h"
 
 /*
@@ -14,24 +14,11 @@ Information for users of this program:
 1. Modify the below configuration if necessary
 2. Input file should not contain satellites without azimuth, elevation or SNR information.
 
+sudo apt-get install libgsl-dev
 gcc -Wall antenna.c mathutil.c struct.c -o antenna -lgsl -lgslcblas -lm
 ./antenna > output.txt
 valgrind --leak-check=full -s ./antenna
 */
-
-/* Configuration */
-#define INPUT_FILE_PATH "input.txt"
-#define MAX_NUM_EPOCH NUM_EPOCH
-
-/* Usually no need to change*/
-#define MAX_NUM_SAT_EPOCH 100 // maximum number of satellites visible in an epoch
-#define MAX_NUM_SIGNAL (MAX_NUM_EPOCH * MAX_NUM_SAT_EPOCH)
-#define MAX_NUM_CHAR_LINE 100 // num of char in each record or line
-#define NUM_CHAR_DATE 10
-#define NUM_CHAR_TIME 10
-#define NUM_CHAR_SAT 3
-#define C(i) (gsl_vector_get(c, (i)))
-#define COV(i, j) (gsl_matrix_get(cov, (i), (j)))
 
 int main(void)
 {
@@ -298,6 +285,11 @@ int main(void)
 		gsl_multifit_linear_workspace *work = gsl_multifit_linear_alloc(n, 3);
 		gsl_multifit_wlinear(X, w, y, c, cov, &chisq, work);
 		gsl_multifit_linear_free(work);
+		/* clang-format off */
+
+		#define C(i) (gsl_vector_get(c, (i)))
+		#define COV(i, j) (gsl_matrix_get(cov, (i), (j)))
+		/* clang-format on */
 
 		/* save best fit */
 		*(axelSol->x) = C(0);
