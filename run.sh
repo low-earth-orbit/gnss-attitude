@@ -2,7 +2,7 @@
 echo "GNSS Single Antenna Attitude Determination"
 echo "Data Generation ..."
 SECONDS=0
-gcc -Wall simulation.c util.c struct.c -lm -o simulation
+gcc -Wall simulation.c util.c struct.c -o simulation -lm
 ./simulation > input.txt
 echo "Completed in $SECONDS seconds"
 echo "Processing ..."

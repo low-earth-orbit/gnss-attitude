@@ -9,6 +9,14 @@ gcc util.c struct.c -lm -o util
 #include "util.h"
 #include "struct.h"
 
+/* comparison function for qsort satArray */
+int cmpSatArray(const void *a, const void *b)
+{
+	const Sat *a1 = *(const Sat **)a;
+	const Sat *b1 = *(const Sat **)b;
+	return strcmp(a1->time, b1->time);
+}
+
 bool isStrInArray(char *str, char **array, long int index)
 {
 	for (long int i = 0; i < index; i++)

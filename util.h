@@ -4,6 +4,7 @@
 /*
 	Function declarations
 */
+int cmpSatArray(const void *a, const void *b);
 bool isStrInArray(char *str, char **array, long int index);
 char *concat(const char *str1, const char *str2);
 double deg2rad(double deg);
