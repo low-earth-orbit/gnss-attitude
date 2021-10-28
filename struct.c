@@ -42,7 +42,7 @@ void printEpochArray(Epoch **epochArray, long int numEpoch)
 	for (long int i = 0; i < numEpoch; i++)
 	{
 		int n = *(epochArray[i]->numSat);
-		printf("======== Epoch %s contains %i satellite signals ========\n", (*epochArray[i]).time, n + 1);
+		printf("======== Epoch %s contains %i satellite signals ========\n", (*epochArray[i]).time, n);
 		for (int j = 0; j < n; j++)
 			printf("%s\t%s\t%lf\t%lf\t%lf\n", (*epochArray[i]).epochSatArray[j]->time, (*epochArray[i]).epochSatArray[j]->satName, *(*epochArray[i]).epochSatArray[j]->az, *(*epochArray[i]).epochSatArray[j]->el, *(*epochArray[i]).epochSatArray[j]->snr);
 	}
