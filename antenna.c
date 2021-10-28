@@ -111,39 +111,60 @@ int main(void)
 
 		while (*i < satArrayIndex)
 		{
-			if (*epochSatArrayIndex == 0) // first one in any epoch
+
+			if (*epochSatArrayIndex == 0 && *i != satArrayIndex - 1) // first sat in epoch && not the last sat
 			{
 				epochSatArray[*epochSatArrayIndex] = satArray[*i];
 				*epochSatArrayIndex += 1;
 			}
-			else if (*i == satArrayIndex - 1 || strcmp(satArray[*i]->time, satArray[*i - 1]->time) != 0) // last one in sat array or not the same
+
+			else if (*epochSatArrayIndex == 0 && *i == satArrayIndex - 1) // first sat in epoch && the last sat
+			{
+				free(epochSatArrayIndex);
+				free(epochSatArray);
+			}
+			else if (strcmp(satArray[*i]->time, satArray[*i - 1]->time) == 0) // current one belongs to the same epoch
+			{
+				epochSatArray[*epochSatArrayIndex] = satArray[*i];
+				*epochSatArrayIndex += 1;
+
+				if (*i == satArrayIndex - 1)
+				{
+					if (*epochSatArrayIndex >= 3)
+					{
+						epochArray[*epochArrayIndex] = createEpoch(satArray[*i - 1]->time, epochSatArray, epochSatArrayIndex);
+						*epochArrayIndex += 1;
+					}
+					else // do not record to array
+					{
+						free(epochSatArrayIndex);
+						free(epochSatArray);
+					}
+				}
+			}
+			else if (strcmp(satArray[*i]->time, satArray[*i - 1]->time) != 0) // current one belongs to a new epoch
 			{
 				if (*epochSatArrayIndex >= 3)
 				{
 					epochArray[*epochArrayIndex] = createEpoch(satArray[*i - 1]->time, epochSatArray, epochSatArrayIndex);
 					*epochArrayIndex += 1;
 				}
-				else
+				else // do not record to array
 				{
 					free(epochSatArrayIndex);
 					free(epochSatArray);
 				}
-
-				break;
+				if (*i != satArrayIndex - 1)
+				{
+					break; // if not the last sat: break the inner while lool; skip increment *i
+				}
 			}
-			else if (strcmp(satArray[*i]->time, satArray[*i - 1]->time) == 0) // the same. not the first one in epoch. not the last one in sat array
-			{
-				epochSatArray[*epochSatArrayIndex] = satArray[*i];
-				*epochSatArrayIndex += 1;
-			}
-
 			*i += 1;
 		}
+
 		if (*i == satArrayIndex)
 		{
-			free(epochSatArrayIndex);
-			free(epochSatArray);
-			break;
+			break; // break the outer while loop
 		}
 	}
 	free(i);
@@ -151,7 +172,7 @@ int main(void)
 	/*
 		print epoch array to check file input read
 	*/
-	//printEpochArray(epochArray, *epochArrayIndex);
+	printEpochArray(epochArray, *epochArrayIndex);
 
 	/*
 		Duncan's method (Duncan & Dunn, 1998) -- Vector sum of signal-to-noise ratio (SNR) weighted line-of-sight (LOS) vectors
