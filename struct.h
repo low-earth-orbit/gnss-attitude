@@ -4,7 +4,7 @@
 typedef struct Sat
 {
 	char *time; // GPS time
-	char *satName;
+	char *prn;
 	double *az;
 	double *el;
 	double *snr;
@@ -22,7 +22,7 @@ typedef struct Sol
 	double *x, *y, *z, *az, *el;
 } Sol;
 
-Sat *createSat(char *time, char *satName, double *az, double *el, double *snr);
+Sat *createSat(char *time, char *prn, double *az, double *el, double *snr);
 Epoch *createEpoch(char *time, Sat **epochSatArray, int *numSat);
 Sol *createSol(double *x, double *y, double *z, double *az, double *el);
 void printEpochArray(Epoch **epochArray, long int numEpoch);

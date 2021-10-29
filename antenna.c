@@ -46,15 +46,15 @@ int main(void)
 	{
 		char *time1 = (char *)malloc(sizeof(char) * (NUM_CHAR_DATE + 1));
 		char *time2 = (char *)malloc(sizeof(char) * (NUM_CHAR_TIME + 1));
-		char *satName = (char *)malloc(sizeof(char) * (NUM_CHAR_SAT + 1));
+		char *prn = (char *)malloc(sizeof(char) * (NUM_CHAR_SAT + 1));
 		double *az = (double *)malloc(sizeof(double));
 		double *el = (double *)malloc(sizeof(double));
 		double *snr = (double *)malloc(sizeof(double));
 
-		sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, satName, az, el, snr);
+		sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, prn, az, el, snr);
 		char *time = concat(time1, time2);
 
-		satArray[satArrayIndex] = createSat(time, satName, az, el, snr); // Add each sat to sat array
+		satArray[satArrayIndex] = createSat(time, prn, az, el, snr); // Add each sat to sat array
 		satArrayIndex++;
 
 		free(time1);
@@ -88,7 +88,7 @@ int main(void)
 	qsort(satArray, satArrayIndex, sizeof(Sat *), cmpSatArray);
 	/* 	for (int j = 0; j < satArrayIndex; j++)
 	{
-		printf("After sort: %s\t%s\n", satArray[j]->time, satArray[j]->satName);
+		printf("After sort: %s\t%s\n", satArray[j]->time, satArray[j]->prn);
 	} */
 
 	/* 
@@ -404,7 +404,7 @@ int main(void)
 	for (long int i = 0; i < satArrayIndex; i++)
 	{
 		free(satArray[i]->time);
-		free(satArray[i]->satName);
+		free(satArray[i]->prn);
 		free(satArray[i]->az);
 		free(satArray[i]->el);
 		free(satArray[i]->snr); // free attributes
