@@ -156,7 +156,7 @@ int main(void)
 				}
 				if (*i != satArrayIndex - 1)
 				{
-					break; // if not the last sat: break the inner while lool; skip increment *i
+					break; // if not the last sat: break the inner while loop; skip increment *i
 				}
 			}
 			*i += 1;
@@ -313,13 +313,8 @@ int main(void)
 			double xyz[3];
 			ae2xyz(*(*epochArray[i]).epochSatArray[j]->az, *(*epochArray[i]).epochSatArray[j]->el, xyz);
 
-			/* get sigma of cos(a) to be used in weight matrix W */
-			//double sigmaSnr = 0.5 + (3 - 0.5) * (*(*epochArray[i]).epochSatArray[j]->snr - 35) / (50 - 35);
-			//if (sigmaSnr < 0.5)														  // catch the case that sigma <= 0
-			//	sigmaSnr = 0.5;														  // set to minumum sigmaSnr
-			//double sigma = sigmaSnr / 15.0;											  // uncertainty is a function of SNR. divide sigmaSnr by the coefficient of sigma_cosA
-			double cosA = (*(*epochArray[i]).epochSatArray[j]->snr - 36.98) / 13.36; // find cosA from the mapping function snr = (MAX_SNR-MIN_SNR)*cos(A)+MIN_SNR;
-			double sigma = 2.0 / 13.36;
+			double cosA = (*(*epochArray[i]).epochSatArray[j]->snr - SNR_C) / SNR_A; // find cosA from the mapping function snr = (MAX_SNR-MIN_SNR)*cos(A)+MIN_SNR;
+			double sigma = SNR_STD / SNR_A;
 
 			// Set each observation equation
 			gsl_matrix_set(X, j, 0, xyz[0]); // coefficient c0 = x
