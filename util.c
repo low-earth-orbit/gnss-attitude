@@ -179,9 +179,9 @@ void xyz2aeSol(double x, double y, double z, Sol *sol)
 }
 
 /*
-	Calculate circular mean (azimuth)
+	Calculate circular mean of a set of angles (in degree)
 */
-double meanAz(double array[], int n)
+double cirMean(double array[], int n)
 {
 	if (n == 1)
 		return array[0];
@@ -209,6 +209,82 @@ double meanAz(double array[], int n)
 	return rad2deg(mean);
 }
 
+/*
+	Calculate circular variance of a set of angles (in degree)
+*/
+double cirVar(double array[], int n)
+{
+	if (n == 1)
+		return array[0];
+	double x, y;
+	x = 0.0;
+	y = 0.0;
+	for (int i = 0; i < n; i++)
+	{
+		y += cos(deg2rad(array[i]));
+		x += sin(deg2rad(array[i]));
+	}
+	y /= (double)n;
+	x /= (double)n;
+	double r = sqrt(x * x + y * y) / (double)n;
+	double var = 1.0 - r;
+	return var;
+}
+
+/*
+	Calculate circular variance of azimuths
+
+	*epoch: pointer to Epoch object
+	
+	output: circular variance of azimuths
+*/
+double cirStdAzEpoch(Epoch *epoch)
+{
+	int n = *(epoch->numSat);
+	double x, y;
+	x = 0.0;
+	y = 0.0;
+	for (int i = 0; i < n; i++)
+	{
+		y += cos(deg2rad(*epoch->epochSatArray[i]->az));
+		x += sin(deg2rad(*epoch->epochSatArray[i]->az));
+	}
+	y /= (double)n;
+	x /= (double)n;
+	double r = sqrt(x * x + y * y) / (double)n;
+	double std = sqrt(-2.0 * log(r));
+	return std;
+}
+
+/*
+	Calculate spherical standard deviation of a set of cartesian coordinates (x, y, z) in the epoch
+
+	*epoch: pointer to Epoch object
+	
+	output: spherical standard deviation
+*/
+double spStdEpoch(Epoch *epoch)
+{
+	int n = *(epoch->numSat);
+	double x, y, z;
+	x = 0.0;
+	y = 0.0;
+	z = 0.0;
+	for (int i = 0; i < n; i++)
+	{
+		double xyz[3];
+		ae2xyz(*epoch->epochSatArray[i]->az, *epoch->epochSatArray[i]->el, xyz);
+		x += xyz[0];
+		y += xyz[1];
+		z += xyz[2];
+	}
+	x /= (double)n;
+	y /= (double)n;
+	z /= (double)n;
+	double rsq = (x * x + y * y + z * z);
+	double std = sqrt(1 - rsq);
+	return std;
+}
 /*
 	Calculate spherical distance (great-circle distance) between two points on UNIT sphere.
 	The output is the distance also the angular distance in rad if the two points are on UNIT sphere.
