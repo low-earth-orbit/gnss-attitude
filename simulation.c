@@ -38,14 +38,13 @@ typedef struct SimuSat
 /*
 	Generate points visible by the antenna, which are boresight angle dependent. This function assumes antenna azimuth = 180 deg. That is pointing to negative y (northing). Reference: https://mathworld.wolfram.com/SpherePointPicking.html
 	
-		points[][5]: points array
+		sat: pointer to SimuSat object
 		
 		antEl: antenna's elevation angle (a.k.a. boresight angle) in degrees; if the antenna is pointing straight up, that is 90 deg.
 		
 		n: number of points on the ENTIRE sphere
 		
 		returns: number of satellites visible to the antenna with specific elevation angle
-	
 */
 int randSat(SimuSat *sat, int n, double antEl)
 {
@@ -95,9 +94,8 @@ int randSat(SimuSat *sat, int n, double antEl)
 
 int main(void)
 {
-	// While elevation angle is adjustable, antenna azimuth is simulated at 180 deg by randSat()
+	// While elevation angle is adjustable in <config.h>, antenna azimuth is simulated at 180 deg by randSat()
 	// Boresight vector is (0, -cos(TRUE_EL), sin(TRUE_EL))
-	int numSat = 100; // number of GNSS satellites globally available
 
 	srand(time(NULL)); // set seed for rand()
 	gsl_rng_env_setup();
@@ -112,13 +110,13 @@ int main(void)
 
 	for (int i = 0; i < NUM_EPOCH; i++)
 	{ // one simulation per loop
-		SimuSat *visSat = (SimuSat *)malloc(numSat * sizeof(SimuSat));
+		SimuSat *visSat = (SimuSat *)malloc(NUM_SAT_SPHERE * sizeof(SimuSat));
 		if (visSat == NULL)
 		{
 			fprintf(stderr, "malloc() failed for creating visSat\n");
 			exit(-1);
 		}
-		numVisPt = randSat(visSat, numSat, TRUE_EL);
+		numVisPt = randSat(visSat, NUM_SAT_SPHERE, TRUE_EL);
 		if (numVisPt != 0)
 		{
 			for (int j = 0; j < numVisPt; j++)
