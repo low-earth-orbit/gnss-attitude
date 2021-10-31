@@ -7,6 +7,8 @@
 #include "util.h"
 #include "config.h"
 #include "struct.h"
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
 
 /*
 This program simulates the satellite-antenna geometry.
@@ -19,7 +21,7 @@ Therefore, there are two hemispheres. When the antenna is pointing up at a 90 de
 
 The assumption of this simulation is that GNSS satellites are randomly distributed on the celestial sphere.
 
-gcc -Wall simulation.c util.c struct.c -lm -o simulation
+gcc -Wall simulation.c util.c struct.c -o simulation  -lgsl -lgslcblas -lm
 ./simulation > input.txt
 */
 
@@ -45,7 +47,7 @@ typedef struct SimuSat
 		returns: number of satellites visible to the antenna with specific elevation angle
 	
 */
-int rpVisSat(SimuSat *sat, int n, double antEl)
+int randSat(SimuSat *sat, int n, double antEl)
 {
 	int numVisPt = 0;
 	double theta, phi, x, y, z, c;
@@ -91,41 +93,24 @@ int rpVisSat(SimuSat *sat, int n, double antEl)
 	return numVisPt;
 }
 
-/*
-	Return a normally distributed random number 
-*/
-double randNormal()
-{
-	double x, y, rsq, f;
-	do
-	{
-		x = 2.0 * (double)rand() / (double)RAND_MAX - 1.0;
-		y = 2.0 * (double)rand() / (double)RAND_MAX - 1.0;
-		rsq = x * x + y * y;
-	} while (rsq >= 1.0 || rsq == 0.0);
-	f = sqrt(-2.0 * log(rsq) / rsq);
-	return x * f;
-}
-
 int main(void)
 {
-	int antEl = TRUE_EL; // Antenna boresight elevation angle
-	// While elevation angle is adjustable, antenna azimuth is simulated at 180 deg by rpVisSat()
-	// Boresight vector is (0, -cos(antEl), sin(antEl))
-	int numEpoch = NUM_EPOCH; // number of simulated epoch
-	int numSat = 100;		  // number of GNSS satellites globally available
-	const double MAX_SNR = 13.36 + 36.98;
-	const double MIN_SNR = 36.98; // Set max and min snr values for snr computation
-	//const double MAX_SNR_STD = 3;
-	//const double MIN_SNR_STD = 0.5; // set max and min snr value variation (standard deviation)
+	// While elevation angle is adjustable, antenna azimuth is simulated at 180 deg by randSat()
+	// Boresight vector is (0, -cos(TRUE_EL), sin(TRUE_EL))
+	int numSat = 100; // number of GNSS satellites globally available
 
 	srand(time(NULL)); // set seed for rand()
+	gsl_rng_env_setup();
+	const gsl_rng_type *T = gsl_rng_default;
+	gsl_rng *r = gsl_rng_alloc(T);
 
 	double spd, snr;
 	int numVisPt;
-	//double snrAdd;
+	double randNormal;
+
 	printf("SIMULATED INPUT FILE || \"SIMUEPOCH#\" \"TIME\"Epoch# \"SAT\" AZ EL SNR SAT#\n"); // print header
-	for (int i = 0; i < numEpoch; i++)
+
+	for (int i = 0; i < NUM_EPOCH; i++)
 	{ // one simulation per loop
 		SimuSat *visSat = (SimuSat *)malloc(numSat * sizeof(SimuSat));
 		if (visSat == NULL)
@@ -133,30 +118,23 @@ int main(void)
 			fprintf(stderr, "malloc() failed for creating visSat\n");
 			exit(-1);
 		}
-		numVisPt = rpVisSat(visSat, numSat, antEl);
+		numVisPt = randSat(visSat, numSat, TRUE_EL);
 		if (numVisPt != 0)
 		{
 			for (int j = 0; j < numVisPt; j++)
 			{
 				/* compute SNR by assumed relationship between SNR and off-boresight angle */
-				spd = spDist(visSat[j].x, visSat[j].y, visSat[j].z, 0, -cos(deg2rad(antEl)), sin(deg2rad(antEl))); // this spd is off-boresight angle in rad
-				snr = (MAX_SNR - MIN_SNR) * cos(spd) + MIN_SNR;													   // cosine relationship is default (preferred), other options below
-				//snr = ((MIN_SNR - MAX_SNR)/8100)*pow(rad2deg(spd),2) + MAX_SNR; // quadratic
-				//snr = MAX_SNR - ( (M_PI*0.5 - spd) / (0.5*M_PI))*(MAX_SNR - MIN_SNR); // linear
-				//printf("%lf %lf\n", rad2deg(spd), snr);
+				spd = spDist(visSat[j].x, visSat[j].y, visSat[j].z, 0, -cos(deg2rad(TRUE_EL)), sin(deg2rad(TRUE_EL))); // spd: off-boresight angle in rad
+				snr = SNR_A * cos(spd) + SNR_C;																		   // cosine relationship is default (preferred)
 				visSat[j].snr = snr;
 
 				/* apply SNR variation */
-				//printf("%lf\n", randNormal());
-				//snrAdd = randNormal() * (MIN_SNR_STD + (spd / (0.5 * M_PI)) * (MAX_SNR_STD - MIN_SNR_STD)); // assume linear relationship between variation of SNR and off-boresight angle
-				visSat[j].snr += 2.0 * randNormal();
-				//printf("%lf, %lf\n", spd, visSat[j].snr);
+				randNormal = gsl_ran_gaussian_ziggurat(r, SNR_STD);
+				visSat[j].snr += randNormal;
+
 				/*
 					print
 				*/
-				//printf("xyz = %lf, %lf, %lf || azel = %lf, %lf || snr = %lf\n", visSat[j].x, visSat[j].y, visSat[j].z, visSat[j].az, visSat[j].el, visSat[j].snr); // for check
-				//printf("%lf %lf %lf\n", visSat[j].x, visSat[j].y, visSat[j].z);// for plot
-				//printf("%lf %lf\n", visSat[j].az, visSat[j].el);// az, el for plot
 				printf("SIMUEPOCH# TIME%06d SAT %lf %lf %lf %i\n", i, visSat[j].az, visSat[j].el, visSat[j].snr, j); // for output as input file
 			}
 		}
@@ -164,6 +142,7 @@ int main(void)
 		/* free after use*/
 		free(visSat);
 	}
-	/*exit*/
+	gsl_rng_free(r);
+
 	exit(0);
 } // end of main()
