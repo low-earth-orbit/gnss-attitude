@@ -221,7 +221,7 @@ int main(void)
 	}
 
 	/*
-		LOS with geometric correction made to elevation angle -- vector sum of non-weighted line-of-sight (LOS) vectors with geometry adjustment for elevation angle. This method is designed by the author of the program to address the geometry issue existing in Duncan's method.g
+		LOS with geometric correction made to elevation angle -- vector sum of non-weighted line-of-sight (LOS) vectors with geometry adjustment for elevation angle. This method is designed by the author of the program to address the geometry issue existing in Duncan's method.
 	*/
 	Sol **geoSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
 	// print header of the output
@@ -269,7 +269,7 @@ int main(void)
 	}
 
 	/*
-		LOS with elevation angle determined by azimuth dispersion -- vector sum of non-weighted line-of-sight (LOS) vectors for azimuth. elevaltion angle is from the statistical relationship between circular standard deviation of azimuth and elevation angle. This method is designed by the author of the program to address the geometry issue existing in Duncan's method. The relationship between circular standard deviation of azimuth and elevation angle needs to be built through simulation or calibration data set.
+		LOS with elevation angle determined by azimuth dispersion -- vector sum of non-weighted line-of-sight (LOS) vectors for azimuth. elevaltion angle is from the correlation between {circular standard deviation of azimuth} and {elevation angle}. The relationship should be built through simulation or calibration data set. This method is designed by the author of the program to address the geometry issue existing in Duncan's method.
 	*/
 	Sol **statSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
 	// print header of the output
