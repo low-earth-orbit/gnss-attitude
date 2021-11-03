@@ -395,7 +395,7 @@ int main(void)
 		xyz2aeSol(*(axelSol->x), *(axelSol->y), *(axelSol->z), axelSol);
 
 		/* print result */
-		//printf("%s,%i,%lf,%lf,%lf,%lf,%lf\n", (*epochArray[i]).time, *(*epochArray[i]).numSat, *(axelSol->x), *(axelSol->y), *(axelSol->z), *(axelSol->az), *(axelSol->el));
+		printf("%s,%i,%lf,%lf,%lf,%lf,%lf\n", (*epochArray[i]).time, *(*epochArray[i]).numSat, *(axelSol->x), *(axelSol->y), *(axelSol->z), *(axelSol->az), *(axelSol->el));
 
 		/* save to array */
 		axelSolArray[i] = axelSol;
@@ -440,7 +440,7 @@ int main(void)
 		rmsAxel = sqrt(sumAxel / *epochArrayIndex);
 		rmsAxel = rad2deg(rmsAxel);
 
-		printf("================== Statistics ==================\n%li epochs, antenna @ %i deg\nRMS Duncan's = %lf deg\nRMS LOS (Geometry) = %lf deg\nRMS LOS (Statistics) = %lf deg\nRMS Axelrad's = %lf deg\n", *epochArrayIndex, TRUE_EL, rmsDun, rmsGeo, rmsStat, rmsAxel);
+		printf("================== Statistics ==================\n%li epochs, antenna @ %i deg\nRMS Duncan's = %lf deg\nRMS LOS (Geometry) = %lf deg\nRMS LOS (Statistics) = %lf deg\nRMS Axelrad's = %lf deg\n", *epochArrayIndex, (int)TRUE_EL, rmsDun, rmsGeo, rmsStat, rmsAxel);
 	}
 
 	/*
