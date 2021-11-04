@@ -305,7 +305,16 @@ int main(void)
 
 		/* elevation angle */
 		double std = cirStdAzEpoch(epochArray[i]);
-		*(statSol->el) = std * 98.323 - 262.77; // <- this relationship is built through simulation or calibration data set
+		double elFunc = std * 98.323 - 262.77; // <- this relationship is built through simulation or calibration data set
+		if (elFunc > 90)
+		{ // catch overflow
+			elFunc = 90;
+		}
+		else if (elFunc <= -90)
+		{
+			elFunc = -90;
+		}
+		*(statSol->el) = elFunc;
 		//double std = spStdEpoch(epochArray[i]);
 		//*(statSol->el) = 383.71 * std * std - 26.155 * std - 167.54;
 
@@ -356,7 +365,18 @@ int main(void)
 			ae2xyz(*(*epochArray[i]).epochSatArray[j]->az, *(*epochArray[i]).epochSatArray[j]->el, xyz);
 
 			double cosA = (*(*epochArray[i]).epochSatArray[j]->snr - SNR_C) / SNR_A; // find cosA from the mapping function snr = (MAX_SNR-MIN_SNR)*cos(A)+MIN_SNR;
-			double sigma = SNR_STD / SNR_A;
+			if (cosA > 1)
+			{ // catch the case that cosA > 1
+				cosA = 1;
+			}
+			else if (cosA < 0)
+			{ // catch the case that cosA < 0
+				cosA = 0;
+			}
+
+			double sigmaSnr = ((SNR_STD_MAX - SNR_STD_MIN) / 8100.0) * pow(rad2deg(acos(cosA)), 2) + SNR_STD_MIN;
+			//printf("alpha = %lf snr_std = %lf\n", rad2deg(acos(cosA)), sigmaSnr);
+			double sigma = sigmaSnr / SNR_A;
 
 			// Set each observation equation
 			gsl_matrix_set(X, j, 0, xyz[0]); // coefficient c0 = x
