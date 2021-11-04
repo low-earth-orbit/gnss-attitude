@@ -5,9 +5,10 @@
 #define INPUT_FILE_PATH "input.txt"
 
 /* mapping function SNR = A cos(a) + c */
-#define SNR_A 13.36 // amplitude A in SNR mapping function
-#define SNR_C 36.98 // constant c in SNR mapping function
-#define SNR_STD 2.0 // SNR variation (standard deviation)
+#define SNR_A 14.73		// amplitude A in SNR mapping function
+#define SNR_C 36.33		// constant c in SNR mapping function
+#define SNR_STD_MAX 3.0 // SNR variation (standard deviation)
+#define SNR_STD_MIN 1.0
 
 /* if true azimuth and elevation angle of the antenna are known, input here for statistics (in degrees) */
 #define TRUE_EL 90
