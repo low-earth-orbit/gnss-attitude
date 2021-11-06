@@ -4,9 +4,10 @@
 #include <stdbool.h>
 #include <math.h>
 #include <gsl/gsl_multifit.h>
-#include "util.h"
-#include "config.h"
-#include "struct.h"
+#include "util.h"	// math utilities
+#include "config.h" // configuration
+#include "struct.h" // structures
+#include "snr.h"	// snr adjustment & mapping
 
 /*
 
@@ -15,7 +16,7 @@ Information for users of this program:
 2. Input file should not contain satellites without azimuth, elevation or SNR information.
 
 sudo apt-get install libgsl-dev
-gcc -Wall antenna.c util.c struct.c -o antenna -lgsl -lgslcblas -lm
+gcc -Wall antenna.c util.c struct.c snr.c -o antenna -lgsl -lgslcblas -lm
 ./antenna > output.txt
 valgrind --tool=memcheck --leak-check=yes --leak-check=full -s --track-origins=yes --show-leak-kinds=all ./antenna
 */
@@ -53,7 +54,13 @@ int main(void)
 
 		sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, prn, az, el, snr);
 		char *time = concat(time1, time2);
-
+		/* adjust SNR here */
+		if (!SIMULATION)
+		{
+			printf("SNR (meas) = %lf\t", *snr);
+			adjSnr(prn, el, snr);
+			printf("SNR (adj) = %lf\n", *snr);
+		}
 		satArray[satArrayIndex] = createSat(time, prn, az, el, snr); // Add each sat to sat array
 		satArrayIndex++;
 
@@ -364,7 +371,21 @@ int main(void)
 			double xyz[3];
 			ae2xyz(*(*epochArray[i]).epochSatArray[j]->az, *(*epochArray[i]).epochSatArray[j]->el, xyz);
 
-			double cosA = (*(*epochArray[i]).epochSatArray[j]->snr - SNR_C) / SNR_A; // find cosA from the mapping function snr = (MAX_SNR-MIN_SNR)*cos(A)+MIN_SNR;
+			double cosA;
+			if (SIMULATION)
+			{
+				cosA = (*(*epochArray[i]).epochSatArray[j]->snr - SNR_C) / SNR_A; // find cosA from the mapping function snr = (MAX_SNR-MIN_SNR)*cos(A)+MIN_SNR;
+			}
+			else // real data, not simulation
+			{
+				double alphaSq = (*(*epochArray[i]).epochSatArray[j]->snr - MAP_B) / MAP_A;
+				if (alphaSq < 0)
+				{
+					alphaSq = 0;
+				}
+				cosA = cos(deg2rad(sqrt(alphaSq)));
+			}
+
 			if (cosA > 1)
 			{ // catch the case that cosA > 1
 				cosA = 1;
