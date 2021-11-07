@@ -4,12 +4,6 @@
 /* file IO */
 #define INPUT_FILE_PATH "input.txt"
 
-/* mapping function SNR = A a^2 + b */
-#define MAP_A -0.001623291 // amplitude A in SNR mapping function
-#define MAP_B 50.77129884  // constant c in SNR mapping function
-#define SNR_STD_MAX 1.0	   // SNR variation (standard deviation)
-#define SNR_STD_MIN 1.0
-
 /* if true azimuth and elevation angle of the antenna are known, input here for statistics (in degrees) */
 #define TRUE_EL 90
 #define TRUE_AZ 180
@@ -30,5 +24,7 @@
 #define NUM_CHAR_DATE 10
 #define NUM_CHAR_TIME 10
 #define NUM_CHAR_SAT 3
+#define SNR_STD_MAX 1.0 // SNR variation (standard deviation)
+#define SNR_STD_MIN 1.0 // default value is 1, meaning non-weighted least squares
 
 #endif
