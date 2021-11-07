@@ -7,7 +7,7 @@ gcc -Wall simulation.c util.c struct.c -o simulation  -lgsl -lgslcblas -lm
 echo "Completed in $SECONDS seconds"
 echo "Processing ..."
 SECONDS=0
-gcc -Wall antenna.c util.c struct.c -o antenna -lgsl -lgslcblas -lm
+gcc -Wall antenna.c util.c struct.c snr.c -o antenna -lgsl -lgslcblas -lm
 ./antenna > output.txt
 echo "Completed in $SECONDS seconds"
 echo "Exiting ..."
