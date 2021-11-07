@@ -70,7 +70,7 @@ void adjSnr(char *prn, double *el, double *snr)
 		{
 			*snr += 3.25537068647712;
 		}
-		else if (isStrInArray(prn, glo3, 1))
+		else if (isStrInArray(prn, glo3, 3))
 		{
 			*snr += 1.55168919985381;
 		}
