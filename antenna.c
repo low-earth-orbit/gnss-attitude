@@ -378,12 +378,15 @@ int main(void)
 			}
 			else // real data, not simulation
 			{
+				double alpha = getAlpha((epochArray[i])->epochSatArray[j]->prn, (*epochArray[i]).epochSatArray[j]->snr);
+				/*
 				double alphaSq = (*(*epochArray[i]).epochSatArray[j]->snr - MAP_B) / MAP_A;
 				if (alphaSq < 0)
 				{
 					alphaSq = 0;
 				}
-				cosA = cos(deg2rad(sqrt(alphaSq)));
+				*/
+				cosA = cos(deg2rad(alpha));
 			}
 
 			if (cosA > 1)
