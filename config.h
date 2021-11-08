@@ -15,6 +15,8 @@
 #define SNR_A 14.73		   // mapping function SNR = A cos(a) + c
 #define SNR_C 36.33
 #define SNR_STD 2
+//#define SNR_STD_MAX 1.0 // SNR variation (standard deviation)
+//#define SNR_STD_MIN 1.0 // default value is 1, meaning non-weighted least squares
 
 /* normally no need to change */
 #define MAX_NUM_EPOCH 86400	  // up to 24h data @ 1hz rate, change if your file has number of epochs more than this
@@ -24,7 +26,5 @@
 #define NUM_CHAR_DATE 10
 #define NUM_CHAR_TIME 10
 #define NUM_CHAR_SAT 3
-#define SNR_STD_MAX 1.0 // SNR variation (standard deviation)
-#define SNR_STD_MIN 1.0 // default value is 1, meaning non-weighted least squares
 
 #endif
