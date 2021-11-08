@@ -57,9 +57,9 @@ int main(void)
 		/* adjust SNR here */
 		if (!SIMULATION)
 		{
-			printf("SNR (meas) = %lf\t", *snr);
+			//printf("SNR (meas) = %lf\t", *snr);
 			adjSnr(prn, el, snr);
-			printf("SNR (adj) = %lf\n", *snr);
+			//printf("SNR (adj) = %lf\n", *snr);
 		}
 		satArray[satArrayIndex] = createSat(time, prn, az, el, snr); // Add each sat to sat array
 		satArrayIndex++;
@@ -179,14 +179,14 @@ int main(void)
 	/*
 		print epoch array to check file input read
 	*/
-	printEpochArray(epochArray, *epochArrayIndex);
+	//printEpochArray(epochArray, *epochArrayIndex);
 
 	/*
 		Duncan's method (Duncan & Dunn, 1998) -- Vector sum of signal-to-noise ratio (SNR) weighted line-of-sight (LOS) vectors. Duncan's method is biased toward the spherical area where the satellite signals come from. If the antenna's elevation angle is negative, Duncan's method yields a positive elevation angle estimate.
 	*/
 	Sol **dunSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
 	// print header of the output
-	printf("================== Duncan's method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
+	//printf("================== Duncan's method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
@@ -222,7 +222,7 @@ int main(void)
 		xyz2aeSol(*(dunSol->x), *(dunSol->y), *(dunSol->z), dunSol);
 
 		/* print result */
-		printf("%s,%i,%lf,%lf,%lf,%lf,%lf\n", (*epochArray[i]).time, *(*epochArray[i]).numSat, *(dunSol->x), *(dunSol->y), *(dunSol->z), *(dunSol->az), *(dunSol->el));
+		//printf("%s,%i,%lf,%lf,%lf,%lf,%lf\n", (*epochArray[i]).time, *(*epochArray[i]).numSat, *(dunSol->x), *(dunSol->y), *(dunSol->z), *(dunSol->az), *(dunSol->el));
 
 		dunSolArray[i] = dunSol;
 	}
@@ -232,7 +232,7 @@ int main(void)
 	*/
 	Sol **geoSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
 	// print header of the output
-	printf("================== LOS (Geometry) method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
+	//printf("================== LOS (Geometry) method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
@@ -269,7 +269,7 @@ int main(void)
 		ae2xyzSol(*(geoSol->az), *(geoSol->el), geoSol);
 
 		/* print result */
-		printf("%s,%i,%lf,%lf,%lf,%lf,%lf\n", (*epochArray[i]).time, *(*epochArray[i]).numSat, *(geoSol->x), *(geoSol->y), *(geoSol->z), *(geoSol->az), *(geoSol->el));
+		//printf("%s,%i,%lf,%lf,%lf,%lf,%lf\n", (*epochArray[i]).time, *(*epochArray[i]).numSat, *(geoSol->x), *(geoSol->y), *(geoSol->z), *(geoSol->az), *(geoSol->el));
 
 		/* save to array */
 		geoSolArray[i] = geoSol;
@@ -280,7 +280,7 @@ int main(void)
 	*/
 	Sol **statSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
 	// print header of the output
-	printf("================== LOS (Statistics) method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
+	//printf("================== LOS (Statistics) method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
@@ -329,7 +329,7 @@ int main(void)
 		ae2xyzSol(*(statSol->az), *(statSol->el), statSol);
 
 		/* print result */
-		printf("%s,%i,%lf,%lf,%lf,%lf,%lf\n", (*epochArray[i]).time, *(*epochArray[i]).numSat, *(statSol->x), *(statSol->y), *(statSol->z), *(statSol->az), *(statSol->el));
+		//printf("%s,%i,%lf,%lf,%lf,%lf,%lf\n", (*epochArray[i]).time, *(*epochArray[i]).numSat, *(statSol->x), *(statSol->y), *(statSol->z), *(statSol->az), *(statSol->el));
 
 		/* save to array */
 		statSolArray[i] = statSol;
@@ -375,33 +375,23 @@ int main(void)
 			if (SIMULATION)
 			{
 				cosA = (*(*epochArray[i]).epochSatArray[j]->snr - SNR_C) / SNR_A; // find cosA from the mapping function snr = (MAX_SNR-MIN_SNR)*cos(A)+MIN_SNR;
+				if (cosA > 1)
+				{ // catch the case that cosA > 1
+					cosA = 1;
+				}
+				else if (cosA < 0)
+				{ // catch the case that cosA < 0
+					cosA = 0;
+				}
 			}
 			else // real data, not simulation
 			{
 				double alpha = getAlpha((epochArray[i])->epochSatArray[j]->prn, (*epochArray[i]).epochSatArray[j]->snr);
-				/*
-				double alphaSq = (*(*epochArray[i]).epochSatArray[j]->snr - MAP_B) / MAP_A;
-				if (alphaSq < 0)
-				{
-					alphaSq = 0;
-				}
-				*/
 				cosA = cos(deg2rad(alpha));
 			}
 
-			if (cosA > 1)
-			{ // catch the case that cosA > 1
-				cosA = 1;
-			}
-			else if (cosA < 0)
-			{ // catch the case that cosA < 0
-				cosA = 0;
-			}
-
-			double sigmaSnr = ((SNR_STD_MAX - SNR_STD_MIN) / 8100.0) * pow(rad2deg(acos(cosA)), 2) + SNR_STD_MIN;
-			//printf("alpha = %lf snr_std = %lf\n", rad2deg(acos(cosA)), sigmaSnr);
-			double sigma = sigmaSnr / SNR_A;
-
+			//double sigma = (3.0 / 81000.0) * pow(*(*epochArray[i]).epochSatArray[j]->el, 2) + 0.7;
+			double sigma = 1;
 			// Set each observation equation
 			gsl_matrix_set(X, j, 0, xyz[0]); // coefficient c0 = x
 			gsl_matrix_set(X, j, 1, xyz[1]); // coefficient c1 = y
