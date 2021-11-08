@@ -70,7 +70,7 @@ void adjSnr(char *prn, double *el, double *snr)
 		{
 			*snr += 3.25537068647712;
 		}
-		else if (isStrInArray(prn, glo3, 3))
+		else if (isStrInArray(prn, glo4, 3))
 		{
 			*snr += 1.55168919985381;
 		}
@@ -87,13 +87,17 @@ double getAlpha(char *prn, double *snr)
 	double a, b;
 	if (prn[0] == 'G') // if GPS
 	{
-		a = -0.00124895691982671; // amplitude A in SNR mapping function SNR = A a^2 + b
+		a = -0.00124895691982671; // coefficient A in SNR mapping function SNR = A a^2 + b
 		b = 137.018606779918;	  // constant b in SNR mapping function
 	}
 	else if (prn[0] == 'R') // if GLO
 	{
 		a = -0.0014250672233639;
 		b = 139.250622304925;
+	}
+	else
+	{
+		perror("PRN not recognized; check your input file.\n");
 	}
 
 	double alphaSq = (*snr - b) / a;
