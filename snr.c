@@ -18,6 +18,14 @@ char *glo2[1] = {"R16"};
 char *glo3[1] = {"R01"};
 char *glo4[3] = {"R18", "R10", "R08"};
 
+/* BeiDou */
+char *bdsIGSO[3] = {"C38", "C39", "C40"};
+
+/* Galileo */
+char *gal1[1] = {"E18"};
+char *gal2[3] = {"E11", "E12", "E19"};
+char *gal3[6] = {"E02", "E07", "E09", "E13", "E15", "E33"};
+
 void adjSnr(char *prn, double *el, double *snr)
 {
 	if (prn[0] == 'G') // if GPS
@@ -55,6 +63,7 @@ void adjSnr(char *prn, double *el, double *snr)
 	{
 		/* path loss adjustment */
 		*snr += 20.0 * log10(sqrt(pow((19140 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
+
 		/* off nadir adjustment */
 		*snr += (1 / 521.007362094454) * pow((*el - 36.550985427478), 2);
 
@@ -76,6 +85,40 @@ void adjSnr(char *prn, double *el, double *snr)
 		}
 		// no power adjustment for 03,07,02,17,14,15,21,11,09,24,04,12,05,23
 	}
+	else if (prn[0] == 'C') // if BDS
+	{
+		*snr += (1 / 691.309549113028) * pow((*el - 42.070374684158), 2);
+
+		if (isStrInArray(prn, bdsIGSO, 3))
+		{
+			*snr += 20.0 * log10(sqrt(pow((35786 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
+		}
+		else
+		{
+			*snr += 20.0 * log10(sqrt(pow((21500 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
+		}
+	}
+	else if (prn[0] == 'E') // if Galileo
+	{
+		/* path loss adjustment */
+		*snr += 20.0 * log10(sqrt(pow((23222 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
+
+		/* off nadir adjustment */
+		*snr += (1 / 627.101412834569) * pow((*el - 40.3692928512536), 2);
+
+		if (isStrInArray(prn, gal1, 1))
+		{
+			*snr += -1.44950633601488;
+		}
+		else if (isStrInArray(prn, gal2, 3))
+		{
+			*snr += 3.67302893675251;
+		}
+		else if (isStrInArray(prn, gal3, 6))
+		{
+			*snr += 0.508445128401819;
+		}
+	}
 }
 
 /*
@@ -94,6 +137,16 @@ double getAlpha(char *prn, double *snr)
 	{
 		a = -0.0014250672233639;
 		b = 139.250622304925;
+	}
+	else if (prn[0] == 'C') // if BDS
+	{
+		a = -0.00133446974973236;
+		b = 137.639697314516;
+	}
+	else if (prn[0] == 'E') // if Galileo
+	{
+		a = -0.00142464219384532;
+		b = 140.318416486544;
 	}
 	else
 	{
