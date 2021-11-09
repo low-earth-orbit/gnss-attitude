@@ -150,7 +150,7 @@ double getAlpha(char *prn, double *snr)
 	}
 	else
 	{
-		perror("PRN not recognized; check your input file.\n");
+		fprintf(stderr, "PRN not recognized; check your input file.\n");
 	}
 
 	double alphaSq = (*snr - b) / a;
