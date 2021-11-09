@@ -2,7 +2,7 @@
 #define CONFIG_H
 
 /* file IO */
-#define INPUT_FILE_PATH "input.txt"
+#define INPUT_FILE_PATH_DEFAULT "input.txt"
 
 /* if true azimuth and elevation angle of the antenna are known, input here for statistics (in degrees) */
 #define TRUE_EL 90
