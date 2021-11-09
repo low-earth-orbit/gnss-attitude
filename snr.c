@@ -35,28 +35,28 @@ void adjSnr(char *prn, double *el, double *snr)
 		if (isStrInArray(prn, IIRLegacy, 5))
 		{
 			/* power adjustment */
-			*snr += 0.219720166037679;
+			*snr += 0.217500466451852;
 			/* off-nadir adjustment */
-			*snr += (1 / 402.076949468687) * pow((*el - 42.6329238899109), 2);
+			*snr += (1 / 363.421120729045) * pow((*el - 42.5153301150902), 2);
 		}
 		else if (isStrInArray(prn, IIRImproved, 3))
 		{
-			*snr += 0.219720166037679;
-			*snr += (1 / 624.305874677204) * pow((*el - 44.0630320830453), 2);
+			*snr += 0.217500466451852;
+			*snr += (1 / 621.389380226501) * pow((*el - 43.7356043887304), 2);
 		}
 		else if (isStrInArray(prn, IIRM, 7))
 		{
-			*snr += 0.123841650852576;
-			*snr += (1 / 624.305874677204) * pow((*el - 44.0630320830453), 2); // IIM are all improved antenna panel
+			*snr += 0.124778481882819;
+			*snr += (1 / 621.389380226501) * pow((*el - 43.7356043887304), 2); // IIM are all improved antenna panel
 		}
 		else if (isStrInArray(prn, III, 5))
 		{
-			*snr += 0.839344040073023;
-			*snr += (1 / 875.059346679879) * pow((*el - 60.617513198107), 2);
+			*snr += 0.787531267514597;
+			*snr += (1 / 642.782267958422) * pow((*el - 42.6823843084975), 2);
 		}
 		else // the rest are IIF: no adjustment for IIF EIRP; it's used as the reference
 		{
-			*snr += (1 / 686.043876690306) * pow((*el - 43.2913049720631), 2);
+			*snr += (1 / 875.058989953713) * pow((*el - 60.4752792046367), 2);
 		}
 	}
 	else if (prn[0] == 'R') // if GLO
@@ -87,7 +87,7 @@ void adjSnr(char *prn, double *el, double *snr)
 	}
 	else if (prn[0] == 'C') // if BDS
 	{
-		*snr += (1 / 691.309549113028) * pow((*el - 42.070374684158), 2);
+		*snr += (1 / 691.303223036127) * pow((*el - 42.072884954551), 2);
 
 		if (isStrInArray(prn, bdsIGSO, 3))
 		{
@@ -130,8 +130,8 @@ double getAlpha(char *prn, double *snr)
 	double a, b;
 	if (prn[0] == 'G') // if GPS
 	{
-		a = -0.00124895691982671; // coefficient A in SNR mapping function SNR = A a^2 + b
-		b = 137.018606779918;	  // constant b in SNR mapping function
+		a = -0.00126170488051369; // coefficient A in SNR mapping function SNR = A a^2 + b
+		b = 137.103669190613;	  // constant b in SNR mapping function
 	}
 	else if (prn[0] == 'R') // if GLO
 	{
@@ -140,8 +140,8 @@ double getAlpha(char *prn, double *snr)
 	}
 	else if (prn[0] == 'C') // if BDS
 	{
-		a = -0.00133446974973236;
-		b = 137.639697314516;
+		a = -0.00133450520582277;
+		b = 137.639888386765;
 	}
 	else if (prn[0] == 'E') // if Galileo
 	{
