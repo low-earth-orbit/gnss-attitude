@@ -123,9 +123,9 @@ void adjSnr(char *prn, double *el, double *snr)
 
 /*
 	based on PRN and SNR, look up off-boresight angle from the corresponding mapping function
-	Ouput: off-bresight angle (alpha) in deg
+	Ouput: cosine alpha
 */
-double getAlpha(char *prn, double *snr)
+double getCosA(char *prn, double *snr)
 {
 	double a, b;
 	if (prn[0] == 'G') // if GPS
@@ -167,5 +167,6 @@ double getAlpha(char *prn, double *snr)
 	{
 		alpha = 0;
 	}
-	return alpha;
+	double cosA = cos(deg2rad(alpha));
+	return cosA;
 }

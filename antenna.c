@@ -307,8 +307,7 @@ int main(int argc, char **argv)
 			}
 			else // real data, not simulation
 			{
-				double alpha = getAlpha((epochArray[i])->epochSatArray[j]->prn, (*epochArray[i]).epochSatArray[j]->snr);
-				cosA = cos(deg2rad(alpha));
+				cosA = getCosA((epochArray[i])->epochSatArray[j]->prn, (*epochArray[i]).epochSatArray[j]->snr);
 			}
 
 			//double sigma = (3.0 / 81000.0) * pow(*(*epochArray[i]).epochSatArray[j]->el, 2) + 0.7;
