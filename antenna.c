@@ -13,45 +13,64 @@
 
 sudo apt-get install libgsl-dev
 gcc -Wall antenna.c util.c struct.c snr.c -o antenna -lgsl -lgslcblas -lm
-./antenna > output.txt
 valgrind --tool=memcheck --leak-check=yes --leak-check=full -s --track-origins=yes --show-leak-kinds=all ./antenna
 */
 
 int main(int argc, char **argv)
 {
 	/*
-		open file for reading
+		File I/O
 	*/
 	FILE *fp = NULL;
 	FILE *fpw = NULL;
 	if (argc == 1)
 	{
+		printf("No input file specified. Using the default input file \"input.txt\".\n");
 		fp = fopen(INPUT_FILE_PATH_DEFAULT, "r");
+		if (fp == NULL)
+		{
+			fprintf(stderr, "Error opening \"input.txt\". Usage:\n./antenna input.txt output.txt\n");
+			return (-1);
+		}
+		printf("No output file specified. Storing results to \"output.txt\"\n");
 	}
 	else if (argc == 2 || argc == 3)
 	{
 		fp = fopen(argv[1], "r");
+		if (fp == NULL)
+		{
+			fprintf(stderr, "Error opening input file specified. Usage:\n./antenna input.txt output.txt\n");
+			return (-1);
+		}
 
 		if (argc == 3)
 		{
 			fpw = fopen(argv[2], "w");
 			if (fpw == NULL)
 			{
-				fprintf(stderr, "Error writing output file\n");
+				fprintf(stderr, "Error writing output file specified. Usage:\n./antenna input.txt output.txt\n");
 				return (-1);
 			}
+		}
+		else
+		{
+			printf("No output file specified. Storing results to \"output.txt\"");
 		}
 	}
 	else
 	{
-		fprintf(stderr, "Too many arguments. Usage:\n./antenna (input.txt) (output.txt)\n");
+		fprintf(stderr, "Too many arguments. Usage:\n./antenna input.txt output.txt\n");
 		return (-1);
 	}
 
-	if (fp == NULL)
+	if (argc != 3)
 	{
-		fprintf(stderr, "Error opening input file\n");
-		return (-1);
+		fpw = fopen("output.txt", "w");
+		if (fpw == NULL)
+		{
+			fprintf(stderr, "Error writing default output file \"output.txt\".\n");
+			return (-1);
+		}
 	}
 
 	/*
@@ -89,7 +108,7 @@ int main(int argc, char **argv)
 	}
 
 	/*
-		close file pointer
+		close input file pointer
 	*/
 	free(line);
 	fclose(fp);
@@ -113,10 +132,6 @@ int main(int argc, char **argv)
 		sort satArray by time
 	*/
 	qsort(satArray, satArrayIndex, sizeof(Sat *), cmpSatArray);
-	/* 	for (int j = 0; j < satArrayIndex; j++)
-	{
-		printf("After sort: %s\t%s\n", satArray[j]->time, satArray[j]->prn);
-	} */
 
 	/* 
 		form epochArray
@@ -206,7 +221,7 @@ int main(int argc, char **argv)
 	*/
 	Sol **geoSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
 	// print header of the output
-	//printf("================== LOS (Geometry) method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
+	fprintf(fpw, "================== Geometry method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
@@ -242,8 +257,8 @@ int main(int argc, char **argv)
 		/* recompute xyz solution using adjusted elevation angle */
 		ae2xyzSol(*(geoSol->az), *(geoSol->el), geoSol);
 
-		/* print result */
-		//printf("%s,%i,%lf,%lf,%lf,%lf,%lf\n", (*epochArray[i]).time, *(*epochArray[i]).numSat, *(geoSol->x), *(geoSol->y), *(geoSol->z), *(geoSol->az), *(geoSol->el));
+		/* save result */
+		fprintf(fpw, "%s,%i,%lf,%lf,%lf,%lf,%lf\n", (*epochArray[i]).time, *(*epochArray[i]).numSat, *(geoSol->x), *(geoSol->y), *(geoSol->z), *(geoSol->az), *(geoSol->el));
 
 		/* save to array */
 		geoSolArray[i] = geoSol;
@@ -254,14 +269,8 @@ int main(int argc, char **argv)
 	*/
 	Sol **axelSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
 
-	if (argc == 3)
-	{
-		fprintf(fpw, "================== Axelrad's method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
-	}
-	else
-	{
-		printf("================== Axelrad's method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
-	}
+	fprintf(fpw, "================== Axelrad's method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
+
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
 		/*	
@@ -348,15 +357,8 @@ int main(int argc, char **argv)
 		/* from xyz solution derive azimuth-elevation solution */
 		xyz2aeSol(*(axelSol->x), *(axelSol->y), *(axelSol->z), axelSol);
 
-		/* print result */
-		if (argc == 3)
-		{
-			fprintf(fpw, "%s,%i,%lf,%lf,%lf,%lf,%lf\n", (*epochArray[i]).time, *(*epochArray[i]).numSat, *(axelSol->x), *(axelSol->y), *(axelSol->z), *(axelSol->az), *(axelSol->el));
-		}
-		else
-		{
-			printf("%s,%i,%lf,%lf,%lf,%lf,%lf\n", (*epochArray[i]).time, *(*epochArray[i]).numSat, *(axelSol->x), *(axelSol->y), *(axelSol->z), *(axelSol->az), *(axelSol->el));
-		}
+		/* save result */
+		fprintf(fpw, "%s,%i,%lf,%lf,%lf,%lf,%lf\n", (*epochArray[i]).time, *(*epochArray[i]).numSat, *(axelSol->x), *(axelSol->y), *(axelSol->z), *(axelSol->az), *(axelSol->el));
 
 		/* save to array */
 		axelSolArray[i] = axelSol;
@@ -388,21 +390,11 @@ int main(int argc, char **argv)
 		rmsAxel = sqrt(sumAxel / *epochArrayIndex);
 		rmsAxel = rad2deg(rmsAxel);
 
-		if (argc == 3)
-		{
-			fprintf(fpw, "================== Statistics ==================\n%li epochs, antenna @ %i deg\nRMS Geometry = %lf deg\nRMS Axelrad's = %lf deg\n", *epochArrayIndex, (int)TRUE_EL, rmsGeo, rmsAxel);
-		}
-		else
-		{
-			printf("================== Statistics ==================\n%li epochs, antenna @ %i deg\nRMS Geometry = %lf deg\nRMS Axelrad's = %lf deg\n", *epochArrayIndex, (int)TRUE_EL, rmsGeo, rmsAxel);
-		}
+		fprintf(fpw, "================== Statistics ==================\n%li epochs, antenna @ %i deg\nRMS Geometry = %lf deg\nRMS Axelrad's = %lf deg\n", *epochArrayIndex, (int)TRUE_EL, rmsGeo, rmsAxel);
 	}
 
-	/* close output file, if used */
-	if (argc == 3)
-	{
-		fclose(fpw);
-	}
+	/* close output file */
+	fclose(fpw);
 
 	/*
 		free() file input 
