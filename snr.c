@@ -24,7 +24,6 @@ char *bdsIGSO[3] = {"C38", "C39", "C40"};
 /* Galileo */
 char *gal1[1] = {"E18"};
 char *gal2[3] = {"E11", "E12", "E19"};
-char *gal3[6] = {"E02", "E07", "E09", "E13", "E15", "E33"};
 
 void adjSnr(char *prn, double *el, double *snr)
 {
@@ -103,20 +102,19 @@ void adjSnr(char *prn, double *el, double *snr)
 		/* path loss adjustment */
 		*snr += 20.0 * log10(sqrt(pow((23222 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
 
-		/* off nadir adjustment */
-		*snr += (1 / 627.101412834569) * pow((*el - 40.3692928512536), 2);
-
 		if (isStrInArray(prn, gal1, 1))
 		{
-			*snr += -1.44950633601488;
+			*snr -= 2.71468820075693;
+			*snr += (1 / 557.983981371012) * pow((*el - 49.6691259258094), 2);
 		}
 		else if (isStrInArray(prn, gal2, 3))
 		{
-			*snr += 3.67302893675251;
+			*snr -= -2.9480183968319;
+			*snr += (1 / 475.995769065121) * pow((*el - 36.3059407271915), 2);
 		}
-		else if (isStrInArray(prn, gal3, 6))
+		else
 		{
-			*snr += 0.508445128401819;
+			*snr += (1 / 818.653254377219) * pow((*el - 32.7874643347818), 2);
 		}
 	}
 }
@@ -145,8 +143,8 @@ double getCosA(char *prn, double *snr)
 	}
 	else if (prn[0] == 'E') // if Galileo
 	{
-		a = -0.00142464219384532;
-		b = 140.318416486544;
+		a = -0.00159161009195648;
+		b = 140.498788381318;
 	}
 	else
 	{
