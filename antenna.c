@@ -248,7 +248,7 @@ int main(int argc, char **argv)
 	/*
 		print epoch array to check file input read
 	*/
-	printEpochArray(epochArray, *epochArrayIndex);
+	//printEpochArray(epochArray, *epochArrayIndex);
 
 	/*
 		Duncan's method (Duncan & Dunn, 1998) -- Vector sum of signal-to-noise ratio (SNR) weighted line-of-sight (LOS) vectors. Duncan's method is biased toward the spherical area where the satellite signals come from. If the antenna's elevation angle is negative, Duncan's method yields a positive elevation angle estimate.
@@ -464,8 +464,7 @@ int main(int argc, char **argv)
 			}
 			else // real data, not simulation
 			{
-
-				if (argc == 3 && (*epochArray[i]).epochSatArray[j]->snr < 0)
+				if ((*epochArray[i]).epochSatArray[j]->snr < 0)
 				{
 					cosA = getCosA2((epochArray[i])->epochSatArray[j]->prn, (*epochArray[i]).epochSatArray[j]->snr2);
 				}
