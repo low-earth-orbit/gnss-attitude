@@ -7,10 +7,14 @@
 #include "struct.h"
 
 /* GPS groups */
+/*
 char *IIRLegacy[5] = {"G13", "G20", "G28", "G16", "G21"};
 char *IIRImproved[3] = {"G22", "G19", "G02"};
 char *IIRM[7] = {"G17", "G31", "G12", "G15", "G29", "G07", "G05"};
 char *III[5] = {"G04", "G11", "G14", "G18", "G23"};
+*/
+char *gps1[4] = {"G13", "G20", "G16", "G21"};
+char *gps2[2] = {"G10", "G32"};
 
 /* GLONASS groups */
 char *glo1[5] = {"R19", "R22", "R06", "R13", "R20"};
@@ -35,31 +39,21 @@ void adjSnr(char *prn, double *el, double *snr)
 	{
 		/* path loss adjustment */
 		*snr += 20.0 * log10(sqrt(pow((20200 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
-		if (isStrInArray(prn, IIRLegacy, 5))
+		if (isStrInArray(prn, gps1, 4))
 		{
 			/* power adjustment */
-			*snr += 0.217500466451852;
+			*snr -= 0.197857694272294;
 			/* off-nadir adjustment */
-			*snr += (1 / 363.421120729045) * pow((*el - 42.5153301150902), 2);
+			*snr += (1 / 413.926109730221) * pow((*el - 38.1146746000328), 2);
 		}
-		else if (isStrInArray(prn, IIRImproved, 3))
+		else if (isStrInArray(prn, gps2, 2))
 		{
-			*snr += 0.217500466451852;
-			*snr += (1 / 621.389380226501) * pow((*el - 43.7356043887304), 2);
+			*snr -= 1.78065087076735;
+			*snr += (1 / 1080.8849341692) * pow((*el - 50.5096233934499), 2);
 		}
-		else if (isStrInArray(prn, IIRM, 7))
+		else
 		{
-			*snr += 0.124778481882819;
-			*snr += (1 / 621.389380226501) * pow((*el - 43.7356043887304), 2); // IIM are all improved antenna panel
-		}
-		else if (isStrInArray(prn, III, 5))
-		{
-			*snr += 0.787531267514597;
-			*snr += (1 / 642.782267958422) * pow((*el - 42.6823843084975), 2);
-		}
-		else // the rest are IIF: no adjustment for IIF EIRP; it's used as the reference
-		{
-			*snr += (1 / 875.058989953713) * pow((*el - 60.4752792046367), 2);
+			*snr += (1 / 766.360450955615) * pow((*el - 40.0844218330287), 2);
 		}
 	}
 	else if (prn[0] == 'R') // if GLO
@@ -132,8 +126,8 @@ double getCosA(char *prn, double *snr)
 	double a, b;
 	if (prn[0] == 'G') // if GPS
 	{
-		a = -0.00126170488051369; // coefficient A in SNR mapping function SNR = A a^2 + b
-		b = 137.103669190613;	  // constant b in SNR mapping function
+		a = -0.0014824959162717; // coefficient A in SNR mapping function SNR = A a^2 + b
+		b = 137.134400410517;	 // constant b in SNR mapping function
 	}
 	else if (prn[0] == 'R') // if GLO
 	{
@@ -181,31 +175,22 @@ void adjSnr2(char *prn, double *el, double *snr2)
 {
 	if (prn[0] == 'G') // if GPS
 	{
+
 		/* path loss adjustment */
 		*snr2 += 20.0 * log10(sqrt(pow((20200 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
-		if (isStrInArray(prn, IIRLegacy, 5))
+		if (isStrInArray(prn, gps1, 4))
 		{
 			/* power adjustment */
-			*snr2 += 0.217500466451852;
+			*snr2 -= -0.217500466451852;
 			/* off-nadir adjustment */
 			*snr2 += (1 / 363.421120729045) * pow((*el - 42.5153301150902), 2);
 		}
-		else if (isStrInArray(prn, IIRImproved, 3))
+		else if (isStrInArray(prn, gps2, 2))
 		{
-			*snr2 += 0.217500466451852;
+			*snr2 -= -0.217500466451852;
 			*snr2 += (1 / 621.389380226501) * pow((*el - 43.7356043887304), 2);
 		}
-		else if (isStrInArray(prn, IIRM, 7))
-		{
-			*snr2 += 0.124778481882819;
-			*snr2 += (1 / 621.389380226501) * pow((*el - 43.7356043887304), 2); // IIM are all improved antenna panel
-		}
-		else if (isStrInArray(prn, III, 5))
-		{
-			*snr2 += 0.787531267514597;
-			*snr2 += (1 / 642.782267958422) * pow((*el - 42.6823843084975), 2);
-		}
-		else // the rest are IIF: no adjustment for IIF EIRP; it's used as the reference
+		else
 		{
 			*snr2 += (1 / 875.058989953713) * pow((*el - 60.4752792046367), 2);
 		}
