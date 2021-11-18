@@ -255,7 +255,7 @@ int main(int argc, char **argv)
 	*/
 	Sol **dunSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
 	// print header of the output
-	fprintf(fpw, "================== Duncan's method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
+	fprintf(fpw, "==================================== Duncan's method ====================================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
@@ -309,7 +309,7 @@ int main(int argc, char **argv)
 	*/
 	Sol **geoSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
 	// print header of the output
-	fprintf(fpw, "================== Geometry method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
+	fprintf(fpw, "==================================== Geometry method ====================================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
@@ -339,8 +339,9 @@ int main(int argc, char **argv)
 		/* from xyz solution derive azimuth-elevation solution */
 		xyz2aeSol(*(geoSol->x), *(geoSol->y), *(geoSol->z), geoSol);
 
-		/* adjust the elevation angle el = (2 * el - 90) */
-		*(geoSol->el) = *(geoSol->el) * 2.0 - 90.0;
+		/* adjust the elevation angle */
+		*(geoSol->el) = 2.0 * (rad2deg(asin((6370.0 / (21450.0 + 6370.0)) * cos(deg2rad(*(geoSol->el))))) + *(geoSol->el)) - 90.0; // this might not be correct; need work
+		//*(geoSol->el) = *(geoSol->el) * 2.0 - 90.0; // this is incorrect
 
 		/* recompute xyz solution using adjusted elevation angle */
 		ae2xyzSol(*(geoSol->az), *(geoSol->el), geoSol);
@@ -357,7 +358,7 @@ int main(int argc, char **argv)
 	*/
 	Sol **statSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
 	// print header of the output
-	fprintf(fpw, "================== Geo Stats method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
+	fprintf(fpw, "==================================== Geo Stats method ====================================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
@@ -389,7 +390,7 @@ int main(int argc, char **argv)
 
 		/* elevation angle */
 		double std = cirStdAzEpoch(epochArray[i]);
-		double elFunc = std * 98.323 - 262.77; // <- this relationship is built through simulation or calibration data set
+		double elFunc = std * 98.323 - 262.77; // <- this relationship is built through simulation
 		if (elFunc > 90)
 		{ // catch overflow
 			elFunc = 90;
@@ -417,7 +418,7 @@ int main(int argc, char **argv)
 	*/
 	Sol **axelSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
 
-	fprintf(fpw, "================== Axelrad's method ==================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
+	fprintf(fpw, "==================================== Axelrad's method ====================================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
