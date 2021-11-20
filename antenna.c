@@ -87,7 +87,6 @@ int main(int argc, char **argv)
 		double *az = (double *)malloc(sizeof(double));
 		double *el = (double *)malloc(sizeof(double));
 		double *snr = (double *)malloc(sizeof(double));
-		double *snr2 = (double *)malloc(sizeof(double));
 
 		sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, prn, az, el, snr);
 		char *time = concat(time1, time2);
@@ -98,7 +97,9 @@ int main(int argc, char **argv)
 			adjSnr(prn, el, snr);
 			//printf("SNR (adj) = %lf\n", *snr);
 		}
+		double *snr2 = (double *)malloc(sizeof(double));
 		*snr2 = -1.0;
+
 		satArray[satArrayIndex] = createSat(time, prn, az, el, snr, snr2); // Add each sat to sat array
 		satArrayIndex++;
 
@@ -117,7 +118,7 @@ int main(int argc, char **argv)
 			char *prn = (char *)malloc(sizeof(char) * (NUM_CHAR_SAT + 1));
 			double *az = (double *)malloc(sizeof(double));
 			double *el = (double *)malloc(sizeof(double));
-			double *snr = (double *)malloc(sizeof(double));
+
 			double *snr2 = (double *)malloc(sizeof(double));
 
 			sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, prn, az, el, snr2);
@@ -129,8 +130,9 @@ int main(int argc, char **argv)
 				adjSnr2(prn, el, snr2);
 				//printf("SNR (adj) = %lf\n", *snr2);
 			}
+			double *snr = (double *)malloc(sizeof(double));
 			*snr = -1.0;
-
+			//printf("snr = %lf\n", *snr);
 			satArray[satArrayIndex] = createSat(time, prn, az, el, snr, snr2); // Add each sat to sat array
 			satArrayIndex++;
 
@@ -274,8 +276,9 @@ int main(int argc, char **argv)
 			ae2xyz(*(*epochArray[i]).epochSatArray[j]->az, *(*epochArray[i]).epochSatArray[j]->el, xyz);
 
 			/* weight LOS vector by SNR */
-			if (argc == 3 && (*epochArray[i]).epochSatArray[j]->snr < 0)
+			if (*(*epochArray[i]).epochSatArray[j]->snr < 0)
 			{
+				//printf("snr < 0\n");
 				xyz[0] *= *(*epochArray[i]).epochSatArray[j]->snr2;
 				xyz[1] *= *(*epochArray[i]).epochSatArray[j]->snr2;
 				xyz[2] *= *(*epochArray[i]).epochSatArray[j]->snr2;
@@ -465,7 +468,7 @@ int main(int argc, char **argv)
 			}
 			else // real data, not simulation
 			{
-				if ((*epochArray[i]).epochSatArray[j]->snr < 0)
+				if (*(*epochArray[i]).epochSatArray[j]->snr < 0)
 				{
 					cosA = getCosA2((epochArray[i])->epochSatArray[j]->prn, (*epochArray[i]).epochSatArray[j]->snr2);
 				}
