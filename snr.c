@@ -231,19 +231,19 @@ void adjSnr2(char *prn, double *el, double *snr)
 
 		if (isStrInArray(prn, l2bds1, 8))
 		{
-			*snr -= -1.75287484083274;
-			*snr += (1 / 296.58285396992) * pow((*el - 36.4468079717406), 2);
+			*snr -= -1.75574127699445;
+			*snr += (1 / 298.037526946873) * pow((*el - 36.1841405239664), 2);
 		}
 		else
 		{
-			*snr += (1 / 824.031034556182) * pow((*el - 35.0932731272401), 2);
+			*snr += (1 / 835.35932801073) * pow((*el - 34.3384428072444), 2);
 		}
 	}
 	//Due to a bug in RTKLIB no GAL L2 signals in the input file
 }
 
 /*
-	L2 Signals
+	L2 Signals: GLO will improve
 */
 double getCosA2(char *prn, double *snr)
 {
@@ -260,8 +260,8 @@ double getCosA2(char *prn, double *snr)
 	}
 	else if (prn[0] == 'C') // if BDS L2
 	{
-		a = -0.0015152861764974;
-		b = 139.39109924668;
+		a = -0.00153174316675887;
+		b = 139.44139502697;
 	} //Due to a bug in RTKLIB no GAL L2 signals in the input file
 	else
 	{
