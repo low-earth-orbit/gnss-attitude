@@ -134,12 +134,12 @@ void xyz2ae(double x, double y, double z, double *azel)
 	}
 	else
 	{
-		az = atan(x / y);
-		/* adjust for quadrant */
+		az = atan2(x, y);
+		/* adjust for quadrant 
 		if (y < 0.0)
 			az += M_PI;
 		if (az < 0.0)
-			az += 2 * M_PI;
+			az += 2 * M_PI;*/
 		az = rad2deg(az);
 	}
 	el = asin(z / r); // r should not be 0
@@ -164,12 +164,20 @@ void xyz2aeSol(double x, double y, double z, Sol *sol)
 	}
 	else
 	{
-		az = atan(x / y);
-		/* adjust for quadrant */
+		az = atan2(x, y);
+		/* adjust for quadrant 
 		if (y < 0.0)
 			az += M_PI;
 		if (az < 0.0)
-			az += 2 * M_PI;
+			az += 2 * M_PI;*/
+		if (az < 0)
+		{
+			az = -az;
+		}
+		else if (az >= 0)
+		{
+			az = 2.0 * M_PI - az;
+		}
 		az = rad2deg(az);
 	}
 	el = asin(z / r); // r should not be 0
@@ -200,12 +208,20 @@ double cirMean(double array[], int n)
 		return -999;
 		printf("Found x/y = pi/2 in meanAz(). Returned -999 Undefined.\n");
 	}
-	mean = atan(x / y);
-	/* adjust for quadrant*/
+	mean = atan2(x, y);
+	/* adjust for quadrant
 	if (y < 0.0)
 		mean += M_PI;
 	if (mean < 0.0)
-		mean += 2 * M_PI;
+		mean += 2 * M_PI;*/
+	if (mean < 0)
+	{
+		mean = -mean;
+	}
+	else if (mean >= 0)
+	{
+		mean = 2.0 * M_PI - mean;
+	}
 	return rad2deg(mean);
 }
 
