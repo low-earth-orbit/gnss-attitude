@@ -84,7 +84,7 @@ void adjSnr(char *prn, double *el, double *snr)
 	}
 	else if (prn[0] == 'C') // if BDS
 	{
-		*snr += (1 / 691.189635777277) * pow((*el - 42.0691729658449), 2);
+		*snr += (1 / 800.141008095851) * pow((*el - 34.513897075906), 2);
 
 		if (isStrInArray(prn, bdsIGSO, 3))
 		{
@@ -112,12 +112,13 @@ void adjSnr(char *prn, double *el, double *snr)
 		}
 		else
 		{
-			*snr += (1 / 817.933673844063) * pow((*el - 32.8019067709832), 2);
+			*snr += (1 / 799.106246264129) * pow((*el - 34.6062359758989), 2);
 		}
 	}
 }
 
 /*
+	L1
 	based on PRN and SNR, look up off-boresight angle from the corresponding mapping function
 	Ouput: cosine alpha
 */
@@ -126,8 +127,8 @@ double getCosA(char *prn, double *snr)
 	double a, b;
 	if (prn[0] == 'G') // if GPS
 	{
-		a = -0.0014824959162717; // coefficient A in SNR mapping function SNR = A a^2 + b
-		b = 137.134400410517;	 // constant b in SNR mapping function
+		a = -0.00152944692727729; // coefficient A in SNR mapping function SNR = A a^2 + b
+		b = 138.157302200121;	  // constant b in SNR mapping function
 	}
 	else if (prn[0] == 'R') // if GLO
 	{
@@ -136,8 +137,8 @@ double getCosA(char *prn, double *snr)
 	}
 	else if (prn[0] == 'C') // if BDS
 	{
-		a = -0.0013345837922313;
-		b = 137.640254265316;
+		a = -0.00153158499362265;
+		b = 138.16417794697;
 	}
 	else if (prn[0] == 'E') // if Galileo
 	{
