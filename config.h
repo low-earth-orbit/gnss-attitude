@@ -3,6 +3,7 @@
 
 /* file IO */
 #define INPUT_FILE_PATH_DEFAULT "input.txt"
+#define OUTPUT_FILE_PATH_DEFAULT "output.txt"
 
 /* if true azimuth and elevation angle of the antenna are known, input here for statistics (in degrees) */
 #define TRUE_EL 90

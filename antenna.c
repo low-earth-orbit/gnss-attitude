@@ -34,8 +34,13 @@ int main(int argc, char **argv)
 
 	if (argc == 1)
 	{
-		fprintf(stderr, "No input file specified. Usage:\n./antenna input.txt (input2.txt)\n");
-		return (-1);
+		fprintf(stderr, "No input file specified. Using default input file \"%s\"\n", INPUT_FILE_PATH_DEFAULT);
+		fp = fopen(INPUT_FILE_PATH_DEFAULT, "r");
+		if (fp == NULL)
+		{
+			fprintf(stderr, "Error opening input file \"%s\"\n", argv[1]);
+			return (-1);
+		}
 	}
 	else if (argc == 2 || argc == 3)
 	{
@@ -62,7 +67,7 @@ int main(int argc, char **argv)
 		return (-1);
 	}
 
-	fpw = fopen("output.txt", "w");
+	fpw = fopen(OUTPUT_FILE_PATH_DEFAULT, "w");
 	if (fpw == NULL)
 	{
 		fprintf(stderr, "Error writing output file \"output.txt\".\n");
@@ -90,12 +95,10 @@ int main(int argc, char **argv)
 
 		sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, prn, az, el, snr);
 		char *time = concat(time1, time2);
-		/* adjust SNR here */
+
 		if (!SIMULATION)
 		{
-			//printf("SNR (meas) = %lf\t", *snr);
 			adjSnr(prn, el, snr);
-			//printf("SNR (adj) = %lf\n", *snr);
 		}
 		double *snr2 = (double *)malloc(sizeof(double));
 		*snr2 = -1.0;
