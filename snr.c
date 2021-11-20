@@ -171,49 +171,49 @@ double getCosA(char *prn, double *snr)
 	L2 signals
 	Due to a bug in RTKLIB no GAL L2 signals in the input file
 */
-void adjSnr2(char *prn, double *el, double *snr2)
+void adjSnr2(char *prn, double *el, double *snr)
 {
 	if (prn[0] == 'G') // if GPS
 	{
 
 		/* path loss adjustment */
-		*snr2 += 20.0 * log10(sqrt(pow((20200 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
+		*snr += 20.0 * log10(sqrt(pow((20200 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
 		if (isStrInArray(prn, gps1, 4))
 		{
 			/* power adjustment */
-			*snr2 -= -0.217500466451852;
+			*snr -= -0.217500466451852;
 			/* off-nadir adjustment */
-			*snr2 += (1 / 363.421120729045) * pow((*el - 42.5153301150902), 2);
+			*snr += (1 / 363.421120729045) * pow((*el - 42.5153301150902), 2);
 		}
 		else if (isStrInArray(prn, gps2, 2))
 		{
-			*snr2 -= -0.217500466451852;
-			*snr2 += (1 / 621.389380226501) * pow((*el - 43.7356043887304), 2);
+			*snr -= -0.217500466451852;
+			*snr += (1 / 621.389380226501) * pow((*el - 43.7356043887304), 2);
 		}
 		else
 		{
-			*snr2 += (1 / 875.058989953713) * pow((*el - 60.4752792046367), 2);
+			*snr += (1 / 875.058989953713) * pow((*el - 60.4752792046367), 2);
 		}
 	}
 	else if (prn[0] == 'R') // if GLO
 	{
 		/* path loss adjustment */
-		*snr2 += 20.0 * log10(sqrt(pow((19140 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
+		*snr += 20.0 * log10(sqrt(pow((19140 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
 
 		/* off nadir adjustment */
-		*snr2 += (1 / 829.990053190839) * pow((*el - 42.9605167180683), 2);
+		*snr += (1 / 829.990053190839) * pow((*el - 42.9605167180683), 2);
 
 		if (isStrInArray(prn, l2glo1, 2))
 		{
-			*snr2 -= -5.11534971992524;
+			*snr -= -5.11534971992524;
 		}
 		else if (isStrInArray(prn, l2glo2, 2))
 		{
-			*snr2 -= -12.084126134283;
+			*snr -= -12.084126134283;
 		}
 		else if (isStrInArray(prn, l2glo3, 1))
 		{
-			*snr2 -= -2.56182116293503;
+			*snr -= -2.56182116293503;
 		}
 	}
 	else if (prn[0] == 'C') // if BDS
@@ -221,21 +221,21 @@ void adjSnr2(char *prn, double *el, double *snr2)
 
 		if (isStrInArray(prn, bdsIGSO, 3))
 		{
-			*snr2 += 20.0 * log10(sqrt(pow((35786 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
+			*snr += 20.0 * log10(sqrt(pow((35786 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
 		}
 		else
 		{
-			*snr2 += 20.0 * log10(sqrt(pow((21500 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
+			*snr += 20.0 * log10(sqrt(pow((21500 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
 		}
 
 		if (isStrInArray(prn, l2bds1, 8))
 		{
-			*snr2 -= -1.75287484083274;
-			*snr2 += (1 / 296.58285396992) * pow((*el - 36.4468079717406), 2);
+			*snr -= -1.75287484083274;
+			*snr += (1 / 296.58285396992) * pow((*el - 36.4468079717406), 2);
 		}
 		else
 		{
-			*snr2 += (1 / 824.031034556182) * pow((*el - 35.0932731272401), 2);
+			*snr += (1 / 824.031034556182) * pow((*el - 35.0932731272401), 2);
 		}
 	}
 	//Due to a bug in RTKLIB no GAL L2 signals in the input file
@@ -244,7 +244,7 @@ void adjSnr2(char *prn, double *el, double *snr2)
 /*
 	L2 Signals
 */
-double getCosA2(char *prn, double *snr2)
+double getCosA2(char *prn, double *snr)
 {
 	double a, b;
 	if (prn[0] == 'G') // if GPS
@@ -261,14 +261,13 @@ double getCosA2(char *prn, double *snr2)
 	{
 		a = -0.0015152861764974;
 		b = 139.39109924668;
-	}
-	//Due to a bug in RTKLIB no GAL L2 signals in the input file
+	} //Due to a bug in RTKLIB no GAL L2 signals in the input file
 	else
 	{
 		fprintf(stderr, "PRN not recognized; check your input file.\n");
 	}
 
-	double alphaSq = (*snr2 - b) / a;
+	double alphaSq = (*snr - b) / a;
 	if (alphaSq < 0)
 	{
 		alphaSq = 0;
