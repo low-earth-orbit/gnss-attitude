@@ -166,20 +166,24 @@ double getCosA(char *prn, double *snr)
 	}
 
 	double alphaSq = (*snr - b) / a;
+	double alpha;
+	double cosA;
+
 	if (alphaSq < 0)
 	{
-		alphaSq = 0;
+		alpha = 0;
 	}
-	double alpha = sqrt(alphaSq);
+	else
+	{
+		alpha = sqrt(alphaSq);
+	}
+
 	if (alpha > 90)
 	{
 		alpha = 90;
 	}
-	else if (alpha < 0)
-	{
-		alpha = 0;
-	}
-	double cosA = cos(deg2rad(alpha));
+
+	cosA = cos(deg2rad(alpha));
 	return cosA;
 }
 
@@ -299,19 +303,23 @@ double getCosA2(char *prn, double *snr)
 	}
 
 	double alphaSq = (*snr - b) / a;
+	double alpha;
+	double cosA;
+
 	if (alphaSq < 0)
 	{
-		alphaSq = 0;
+		alpha = 0;
 	}
-	double alpha = sqrt(alphaSq);
+	else
+	{
+		alpha = sqrt(alphaSq);
+	}
+
 	if (alpha > 90)
 	{
 		alpha = 90;
 	}
-	else if (alpha < 0)
-	{
-		alpha = 0;
-	}
-	double cosA = cos(deg2rad(alpha));
+
+	cosA = cos(deg2rad(alpha));
 	return cosA;
 }
