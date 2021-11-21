@@ -4,11 +4,12 @@
 #include <stdbool.h>
 #include <time.h>
 #include <math.h>
-#include "util.h"
-#include "config.h"
-#include "struct.h"
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
+#include "util.h"	// math utilities
+#include "config.h" // configuration
+#include "struct.h" // structures
+#include "snr.h"	// snr adjustment & mapping
 
 /*
 This program simulates the satellite-antenna geometry.
@@ -104,7 +105,7 @@ int main(void)
 
 	double spd, snr;
 	int numVisPt;
-	double randNormal;
+	double snrAdd;
 
 	printf("SIMULATED INPUT FILE || \"SIMUEPOCH#\" \"TIME\"Epoch# \"SAT\" AZ EL SNR SAT#\n"); // print header
 
@@ -126,9 +127,10 @@ int main(void)
 				snr = SNR_A * cos(spd) + SNR_C;																		   // cosine relationship is default (preferred)
 				visSat[j].snr = snr;
 
-				/* apply SNR variation */
-				randNormal = gsl_ran_gaussian_ziggurat(r, SNR_STD);
-				visSat[j].snr += randNormal;
+				/* apply uniform SNR variation */
+				snrAdd = (double)SNR_STD * gsl_ran_gaussian_ziggurat(r, 1);
+
+				visSat[j].snr += snrAdd;
 
 				/*
 					print

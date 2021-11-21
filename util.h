@@ -2,7 +2,7 @@
 #define UTIL_H
 #include "struct.h"
 /*
-	Function declarations
+	Function prototypes
 */
 int cmpSatArray(const void *a, const void *b);
 bool isStrInArray(char *str, char **array, long int index);
