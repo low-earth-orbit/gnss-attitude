@@ -6,33 +6,47 @@
 #include "util.h"
 #include "struct.h"
 
-/* GPS groups */
+/* GNSS satellite groups */
 /*
 char *IIRLegacy[5] = {"G13", "G20", "G28", "G16", "G21"};
 char *IIRImproved[3] = {"G22", "G19", "G02"};
 char *IIRM[7] = {"G17", "G31", "G12", "G15", "G29", "G07", "G05"};
 char *III[5] = {"G04", "G11", "G14", "G18", "G23"};
 */
+/* GPS "L1" */
 char *gps1[4] = {"G13", "G20", "G16", "G21"};
 char *gps2[2] = {"G10", "G32"};
 
-/* GLONASS groups */
+/* GPS "L5" */
+char *l5gps1[7] = {"G05", "G07", "G12", "G15", "G17", "G29", "G31"};
+
+/* GLONASS "L1" */
 char *glo1[5] = {"R19", "R22", "R06", "R13", "R20"};
 char *glo2[1] = {"R16"};
 char *glo3[1] = {"R01"};
 char *glo4[3] = {"R18", "R10", "R08"};
-char *l2glo1[2] = {"R01", "R13"}; // L2
+
+/* GLONASS "L2" */
+char *l2glo1[2] = {"R01", "R13"};
 char *l2glo2[2] = {"R16", "R22"};
 char *l2glo3[1] = {"R19"};
 
 /* BeiDou */
 char *bdsIGSO[3] = {"C38", "C39", "C40"};
-char *l2bds1[8] = {"C06", "C08", "C09", "C11", "C12", "C13", "C14", "C16"}; // L2
 
-/* Galileo */
+/* Galileo "L1" */
 char *gal1[1] = {"E18"};
 char *gal2[3] = {"E11", "E12", "E19"};
 
+/* Galileo "L5" */
+char *l5gal1[2] = {"E11", "E19"};
+char *l5gal2[2] = {"E14", "E18"};
+char *l5gal3[1] = {"E12"};
+
+/*
+	Selected band 1 signals
+	Makes adjustment to measured SNR
+*/
 void adjSnr(char *prn, double *el, double *snr)
 {
 	if (prn[0] == 'G') // if GPS
@@ -84,11 +98,12 @@ void adjSnr(char *prn, double *el, double *snr)
 	}
 	else if (prn[0] == 'C') // if BDS
 	{
-		*snr += (1 / 800.141008095851) * pow((*el - 34.513897075906), 2);
+		*snr += (1 / 755.252712796527) * pow((*el - 33.5734523918311), 2);
 
 		if (isStrInArray(prn, bdsIGSO, 3))
 		{
 			*snr += 20.0 * log10(sqrt(pow((35786 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
+			*snr -= 1.52720412762558;
 		}
 		else
 		{
@@ -118,7 +133,7 @@ void adjSnr(char *prn, double *el, double *snr)
 }
 
 /*
-	L1
+	Selected band 1 signals
 	based on PRN and SNR, look up off-boresight angle from the corresponding mapping function
 	Ouput: cosine alpha
 */
@@ -137,8 +152,8 @@ double getCosA(char *prn, double *snr)
 	}
 	else if (prn[0] == 'C') // if BDS
 	{
-		a = -0.00153158499362265;
-		b = 138.16417794697;
+		a = -0.00158688882127597;
+		b = 138.366163043981;
 	}
 	else if (prn[0] == 'E') // if Galileo
 	{
@@ -169,31 +184,24 @@ double getCosA(char *prn, double *snr)
 }
 
 /*
-	L2 signals
-	Due to a bug in RTKLIB no GAL L2 signals in the input file
+	Selected dand 2 signals
 */
 void adjSnr2(char *prn, double *el, double *snr)
 {
 	if (prn[0] == 'G') // if GPS
 	{
-
 		/* path loss adjustment */
 		*snr += 20.0 * log10(sqrt(pow((20200 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
-		if (isStrInArray(prn, gps1, 4))
+		if (isStrInArray(prn, l5gps1, 7))
 		{
 			/* power adjustment */
-			*snr -= -0.217500466451852;
+			*snr -= -4.13204675579881;
 			/* off-nadir adjustment */
-			*snr += (1 / 363.421120729045) * pow((*el - 42.5153301150902), 2);
-		}
-		else if (isStrInArray(prn, gps2, 2))
-		{
-			*snr -= -0.217500466451852;
-			*snr += (1 / 621.389380226501) * pow((*el - 43.7356043887304), 2);
+			*snr += (1 / 2601.38891417737) * pow((*el - 119.455650845675), 2);
 		}
 		else
 		{
-			*snr += (1 / 875.058989953713) * pow((*el - 60.4752792046367), 2);
+			*snr += (1 / 1356.10630933808) * pow((*el - 63.7616736614594), 2);
 		}
 	}
 	else if (prn[0] == 'R') // if GLO
@@ -223,46 +231,68 @@ void adjSnr2(char *prn, double *el, double *snr)
 		if (isStrInArray(prn, bdsIGSO, 3))
 		{
 			*snr += 20.0 * log10(sqrt(pow((35786 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
+			*snr -= 3.37609418826693;
 		}
 		else
 		{
 			*snr += 20.0 * log10(sqrt(pow((21500 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
 		}
 
-		if (isStrInArray(prn, l2bds1, 8))
+		*snr += (1 / 1148.03420582938) * pow((*el - 43.2370679814993), 2);
+	}
+	else if (prn[0] == 'E') // if Galileo
+	{
+		/* path loss adjustment */
+		*snr += 20.0 * log10(sqrt(pow((23222 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
+
+		if (isStrInArray(prn, l5gal1, 2))
 		{
-			*snr -= -1.75574127699445;
-			*snr += (1 / 298.037526946873) * pow((*el - 36.1841405239664), 2);
+			*snr -= -4.04061445720716;
+			*snr += (1 / 1031.68361033166) * pow((*el - 29.7836305800164), 2);
+		}
+		else if (isStrInArray(prn, l5gal2, 2))
+		{
+			*snr -= 1.28670728269114;
+			*snr += (1 / 1031.68361033166) * pow((*el - 29.7836305800164), 2);
+		}
+		else if (isStrInArray(prn, l5gal3, 1))
+		{
+			*snr -= -3.12308535024438;
+			*snr += (1 / 1031.68361033166) * pow((*el - 29.7836305800164), 2);
 		}
 		else
 		{
-			*snr += (1 / 835.35932801073) * pow((*el - 34.3384428072444), 2);
+			*snr += (1 / 1358.93545020396) * pow((*el - 27.6007889933465), 2);
 		}
 	}
-	//Due to a bug in RTKLIB no GAL L2 signals in the input file
 }
 
 /*
-	L2 Signals: GLO will improve
+	Selected dand 2 signals
 */
 double getCosA2(char *prn, double *snr)
 {
 	double a, b;
 	if (prn[0] == 'G') // if GPS
 	{
-		a = -0.00126170488051369; // coefficient A in snr2 mapping function snr2 = A a^2 + b
-		b = 137.103669190613;	  // constant b in snr2 mapping function
+		a = -0.00131698575710085; // coefficient A in snr mapping function snr2 = A a^2 + b
+		b = 141.915876909848;	  // constant b in snr mapping function
 	}
 	else if (prn[0] == 'R') // if GLO
 	{
 		a = -0.00154145910190414;
 		b = 137.75957995882;
 	}
-	else if (prn[0] == 'C') // if BDS L2
+	else if (prn[0] == 'C') // if BDS
 	{
-		a = -0.00153174316675887;
-		b = 139.44139502697;
-	} //Due to a bug in RTKLIB no GAL L2 signals in the input file
+		a = -0.00158898922644623;
+		b = 141.54284589507;
+	}
+	else if (prn[0] == 'E') // if GAL
+	{
+		a = -0.00188873929797853;
+		b = 142.564060886881;
+	}
 	else
 	{
 		fprintf(stderr, "PRN not recognized; check your input file.\n");
