@@ -260,7 +260,7 @@ int main(int argc, char **argv)
 	*/
 	Sol **dunSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
 	// print header of the output
-	fprintf(fpw, "==================================== Duncan's method ====================================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
+	fprintf(fpw, "Duncan's method\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
@@ -315,7 +315,7 @@ int main(int argc, char **argv)
 	*/
 	Sol **geoSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
 	// print header of the output
-	fprintf(fpw, "==================================== Geometry method ====================================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
+	fprintf(fpw, "Geometry method\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
@@ -364,7 +364,7 @@ int main(int argc, char **argv)
 	*/
 	Sol **statSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
 	// print header of the output
-	fprintf(fpw, "==================================== Geo Stats method ====================================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
+	fprintf(fpw, "Geo Stats method\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
@@ -424,7 +424,7 @@ int main(int argc, char **argv)
 	*/
 	Sol **axelSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
 
-	fprintf(fpw, "==================================== Axelrad's method ====================================\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
+	fprintf(fpw, "Axelrad's method\nEpoch(GPST),#Sat,X(E),Y(N),Z(U),Az(deg),El(deg)\n");
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
@@ -566,7 +566,8 @@ int main(int argc, char **argv)
 		rmsAxel = sqrt(sumAxel / *epochArrayIndex);
 		rmsAxel = rad2deg(rmsAxel);
 
-		printf("================== Statistics ==================\n%li epochs, antenna @ %i deg\nRMS Duncan's = %lf deg\nRMS LOS (Geometry) = %lf deg\nRMS LOS (Statistics) = %lf deg\nRMS Axelrad's = %lf deg\n", *epochArrayIndex, (int)TRUE_EL, rmsDun, rmsGeo, rmsStat, rmsAxel);
+		fprintf(fpw, "Statistics\n%li epochs, antenna @ %i deg\nRMS Duncan's = %lf deg\nRMS LOS (Geometry) = %lf deg\nRMS LOS (Statistics) = %lf deg\nRMS Axelrad's = %lf deg\n", *epochArrayIndex, (int)TRUE_EL, rmsDun, rmsGeo, rmsStat, rmsAxel);
+		printf("Statistics\n%li epochs, antenna @ %i deg\nRMS Duncan's = %lf deg\nRMS LOS (Geometry) = %lf deg\nRMS LOS (Statistics) = %lf deg\nRMS Axelrad's = %lf deg\n", *epochArrayIndex, (int)TRUE_EL, rmsDun, rmsGeo, rmsStat, rmsAxel);
 	}
 
 	/* close output file */
