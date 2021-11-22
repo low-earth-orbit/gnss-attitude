@@ -10,11 +10,11 @@
 #define TRUE_AZ 180
 
 /* used only for simulation: default off */
-#define SIMULATION false   // simulation on or off
+#define SIMULATION true   // simulation on or off
 #define NUM_EPOCH 10000	   // number of epochs to simulate
-#define NUM_SAT_SPHERE 100 // number of GNSS satellites globally available
-#define SNR_A 14.73		   // mapping function SNR = A cos(a) + c
-#define SNR_C 36.33
+#define NUM_SAT_SPHERE 105 // number of GNSS satellites globally available
+#define SNR_A 15.0		   // mapping function SNR = A cos(a) + c
+#define SNR_C 35.0
 #define SNR_STD 2
 //#define SNR_STD_MAX 1.0 // SNR variation (standard deviation)
 //#define SNR_STD_MIN 1.0 // default value is 1, meaning non-weighted least squares
