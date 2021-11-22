@@ -347,11 +347,11 @@ int main(int argc, char **argv)
 		/* adjust the elevation angle */
 		if (*(geoSol->el) >= 40.60836353)
 		{
-			*(geoSol->el) = -0.0098 * pow(*(geoSol->el), 2) + 3.0941 * *(geoSol->el) - 109.54;
+			*(geoSol->el) = -0.0098 * pow(*(geoSol->el), 2) + 3.0941 * *(geoSol->el) - 109.54; // incorrect, to be updated
 		}
 		else
 		{
-			*(geoSol->el) = 0.0043 * pow(*(geoSol->el), 2) + 2.0521 * *(geoSol->el) - 90.205; // temporary solution, not direct solution by geometry
+			*(geoSol->el) = 0.0043 * pow(*(geoSol->el), 2) + 2.0521 * *(geoSol->el) - 90.205; // incorrect, to be updated // temporary solution, not direct solution by geometry
 		}
 
 		if (*(geoSol->el) > 90)
@@ -376,7 +376,7 @@ int main(int argc, char **argv)
 	}
 
 	/*
-		LOS with elevation angle determined by azimuth dispersion -- vector sum of non-weighted line-of-sight (LOS) vectors for azimuth. elevaltion angle is from the correlation between {circular standard deviation of azimuth} and {elevation angle}. The relationship should be built through simulation or calibration data set. This method is designed by the author of the program to address the geometry issue existing in Duncan's method.
+		LOS with elevation angle determined by azimuth dispersion -- vector sum of non-weighted line-of-sight (LOS) vectors for azimuth. elevaltion angle is from the correlation between {circular standard deviation of azimuth} and {elevation angle}. The relationship can be built through simulation. This method is designed by the author of the program to address the geometry issue existing in LOS summation method.
 	*/
 	Sol **statSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
 	// print header of the output
@@ -411,16 +411,16 @@ int main(int argc, char **argv)
 
 		/* elevation angle */
 		double std = cirStdAzEpoch(epochArray[i]);
-		double elFunc = std * 98.323 - 262.77; // <- this relationship is built through simulation
-		if (elFunc > 90)
+		double elFun = std * 98.323 - 262.77; // <- this relationship is built through simulation
+		if (elFun > 90)
 		{ // catch overflow
-			elFunc = 90;
+			elFun = 90;
 		}
-		else if (elFunc <= -90)
+		else if (elFun <= -90)
 		{
-			elFunc = -90;
+			elFun = -90;
 		}
-		*(statSol->el) = elFunc;
+		*(statSol->el) = elFun;
 		//double std = spStdEpoch(epochArray[i]);
 		//*(statSol->el) = 383.71 * std * std - 26.155 * std - 167.54;
 
