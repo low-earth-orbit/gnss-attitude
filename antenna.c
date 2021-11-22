@@ -345,7 +345,15 @@ int main(int argc, char **argv)
 		xyz2aeSol(*(geoSol->x), *(geoSol->y), *(geoSol->z), geoSol);
 
 		/* adjust the elevation angle */
-		*(geoSol->el) = 0.0049 * pow(*(geoSol->el), 2) + 2.0319 * *(geoSol->el) - 90.118; // temporary solution, not direct solution by geometry
+		if (*(geoSol->el) >= 40.60836353)
+		{
+			*(geoSol->el) = -0.0098 * pow(*(geoSol->el), 2) + 3.0941 * *(geoSol->el) - 109.54;
+		}
+		else
+		{
+			*(geoSol->el) = 0.0043 * pow(*(geoSol->el), 2) + 2.0521 * *(geoSol->el) - 90.205; // temporary solution, not direct solution by geometry
+		}
+
 		if (*(geoSol->el) > 90)
 		{
 			*(geoSol->el) = 90;
