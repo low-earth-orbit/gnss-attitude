@@ -14,13 +14,11 @@
 /*
 This program simulates the satellite-antenna geometry.
 
-a. Only the satellites above Earth's horizon can be possibly seen regardless of the direction in which the antenna is pointing. This is true when the antenna is located on or close to the Earth's surface. The user may set a cutoff angle for post-processing. Assume such angle is 0 here.
+a. Only the satellites above Earth's horizon are visible regardless receiving antenna's direction. This is true when the antenna is located on or close to the Earth's surface. The user may set a cutoff angle for post-processing. Assume such angle is 0 here.
 
-b. Antenna can only receive signals from satellites above the antenna's horizon. This is typical for GNSS antennas receiving signals.
+b. Antenna can only receive signals from satellites above the antenna's horizon plane, typical for GNSS receiving antennas. This plane is orthogonal to antenna axis.
 
-Therefore, there are two hemispheres. When the antenna is pointing up at a 90 deg elevation angle, the two coincide. However, when the antenna is not at a 90 deg elevation angle only the area these hemispheres overlap has visible GNSS satellites.
-
-The assumption of this simulation is that GNSS satellites are randomly distributed on the celestial sphere.
+c. It is assumed that GNSS satellites are randomly distributed on the celestial sphere.
 
 gcc -Wall simulation.c util.c struct.c -o simulation  -lgsl -lgslcblas -lm
 ./simulation > input.txt
@@ -50,43 +48,78 @@ typedef struct SimuSat
 int randSat(SimuSat *sat, int n, double antEl)
 {
 	int numVisPt = 0;
-	double theta, phi, x, y, z, c;
+	double theta, phi;
 	double azel[2];
+	double xyz[3];
+
+	/* r_e = 6370	r_s = 6370 + 21450 = 27820 */
+	double h = 6370 / 27820;
+	double c = tan(M_PI_2 - deg2rad(antEl));
+
 	for (int i = 1; i < n; i++)
 	{
 		theta = 2.0 * M_PI * (double)rand() / (double)RAND_MAX;
 		phi = acos(2.0 * (double)rand() / (double)RAND_MAX - 1);
-		x = sin(phi) * cos(theta);
-		y = sin(phi) * sin(theta);
-		z = cos(phi); // Treat this as local coordinates xyz
-		xyz2ae(x, y, z, azel);
+		xyz[0] = sin(phi) * cos(theta);
+		xyz[1] = sin(phi) * sin(theta);
+		xyz[2] = cos(phi) / 2;
 
 		// if in visible area, record the point
-		if (z > 0)
+		if (xyz[2] > h)
 		{
-			if (antEl == 90)
+			if (antEl == 90 || (antEl > 0 && xyz[2] > c * xyz[1] + h) || (antEl < 0 && xyz[2] < c * xyz[1] + h) || (antEl == 0 && xyz[1] < 0))
 			{
-				sat[numVisPt].x = x;
-				sat[numVisPt].y = y;
-				sat[numVisPt].z = z;
+				xyz[2] = cos(phi) - h; // adjust by observer location
+				normalizeXyz(xyz);
+				xyz2ae(xyz[0], xyz[1], xyz[2], azel);
+
+				sat[numVisPt].x = xyz[0];
+				sat[numVisPt].y = xyz[1];
+				sat[numVisPt].z = xyz[2];
 				sat[numVisPt].az = azel[0];
 				sat[numVisPt].el = azel[1];
 				sat[numVisPt].snr = 0; // snr will be updated in main()
 				numVisPt++;
-			} // catch tan(pi/2) situation
-			else
+			}
+		}
+	}
+	return numVisPt;
+}
+
+int testSat(SimuSat *sat, int n, double antEl)
+{
+	int numVisPt = 0;
+	double theta, phi;
+	double xyz[3];
+
+	/* r_e = 6370	r_s = 6370 + 21450 = 27820 */
+	double h = 6370.0 / 27820.0;
+	double c = tan(M_PI_2 - deg2rad(antEl));
+
+	for (int i = 1; i < n; i++)
+	{
+		theta = 2.0 * M_PI * (double)rand() / (double)RAND_MAX;
+		phi = acos(2.0 * (double)rand() / (double)RAND_MAX - 1);
+		xyz[0] = sin(phi) * cos(theta);
+		xyz[1] = sin(phi) * sin(theta);
+		xyz[2] = cos(phi) / 2;
+
+		// if in visible area, record the point
+		if (xyz[2] > h)
+		{
+			if (antEl == 90 || (antEl > 0 && xyz[2] > c * xyz[1] + h) || (antEl < 0 && xyz[2] < c * xyz[1] + h) || (antEl == 0 && xyz[1] < 0))
 			{
-				c = tan(deg2rad(antEl));
-				if (-y + c * z > 0)
-				{
-					sat[numVisPt].x = x;
-					sat[numVisPt].y = y;
-					sat[numVisPt].z = z;
-					sat[numVisPt].az = azel[0];
-					sat[numVisPt].el = azel[1];
-					sat[numVisPt].snr = 0; // snr will be updated in main()
-					numVisPt++;
-				}
+				//xyz[2] = cos(phi) - h; // adjust by observer location
+				//normalizeXyz(xyz);
+				//xyz2ae(xyz[0], xyz[1], xyz[2], azel);
+
+				sat[numVisPt].x = xyz[0];
+				sat[numVisPt].y = xyz[1];
+				sat[numVisPt].z = xyz[2];
+				sat[numVisPt].az = 0;
+				sat[numVisPt].el = 0;
+				sat[numVisPt].snr = 0;
+				numVisPt++;
 			}
 		}
 	}
@@ -95,8 +128,10 @@ int randSat(SimuSat *sat, int n, double antEl)
 
 int main(void)
 {
-	// While elevation angle is adjustable in <config.h>, antenna azimuth is simulated at 180 deg by randSat()
-	// Boresight vector is (0, -cos(TRUE_EL), sin(TRUE_EL))
+	// Elevation angle is adjustable in <config.h>, antenna azimuth is simulated at 180 deg by randSat()
+
+	FILE *fpw = NULL;
+	fpw = fopen("input.txt", "w");
 
 	srand(time(NULL)); // set seed for rand()
 	gsl_rng_env_setup();
@@ -107,7 +142,7 @@ int main(void)
 	int numVisPt;
 	double snrAdd;
 
-	printf("SIMULATED INPUT FILE || \"SIMUEPOCH#\" \"TIME\"Epoch# \"SAT\" AZ EL SNR SAT#\n"); // print header
+	fprintf(fpw, "SIMULATED INPUT FILE \"SIMUEPOCH#\" \"TIME\"Epoch# \"SAT\" AZ EL SNR SAT#\n"); // print header
 
 	for (int i = 0; i < NUM_EPOCH; i++)
 	{ // one simulation per loop
@@ -117,6 +152,7 @@ int main(void)
 			fprintf(stderr, "malloc() failed for creating visSat\n");
 			exit(-1);
 		}
+
 		numVisPt = randSat(visSat, NUM_SAT_SPHERE, TRUE_EL);
 		if (numVisPt != 0)
 		{
@@ -135,13 +171,30 @@ int main(void)
 				/*
 					print
 				*/
-				printf("SIMUEPOCH# TIME%06d SAT %lf %lf %lf %i\n", i, visSat[j].az, visSat[j].el, visSat[j].snr, j); // for output as input file
+				fprintf(fpw, "SIMUEPOCH# TIME%06d SAT %lf %lf %lf %i\n", i, visSat[j].az, visSat[j].el, visSat[j].snr, j); // for output as input file
 			}
 		}
-
-		/* free after use*/
 		free(visSat);
 	}
+	fclose(fpw);
+
+	// x, y, z for visualization, 1 epoch
+	FILE *fpwt = NULL;
+	fpwt = fopen("data.txt", "w");
+	int numTestSat = 10000;
+	SimuSat *testVisSat = (SimuSat *)malloc(numTestSat * sizeof(SimuSat));
+	numVisPt = testSat(testVisSat, numTestSat, TRUE_EL);
+	if (numVisPt != 0)
+	{
+		for (int j = 0; j < numVisPt; j++)
+		{
+			fprintf(fpwt, "%lf %lf %lf\n", testVisSat[j].x, testVisSat[j].y, testVisSat[j].z);
+		}
+	}
+	free(testVisSat);
+	fclose(fpwt);
+	// end of test
+
 	gsl_rng_free(r);
 
 	exit(0);
