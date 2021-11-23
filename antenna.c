@@ -11,7 +11,6 @@
 #include "snr.h"	// snr adjustment & mapping
 
 /*
-
 sudo apt-get install libgsl-dev
 gcc -Wall antenna.c util.c struct.c snr.c -o antenna -lgsl -lgslcblas -lm
 valgrind --tool=memcheck --leak-check=yes --leak-check=full -s --track-origins=yes --show-leak-kinds=all ./antenna
@@ -553,26 +552,14 @@ int main(int argc, char **argv)
 		double trueAntennaXyz[3];
 		ae2xyz(TRUE_AZ, TRUE_EL, trueAntennaXyz);
 
-		/* convergence and RMSE */
-		double rmsDun;
-		double sumDun = 0;
+		/* convergence */
 		double mDunX, mDunY, mDunZ;
-
-		double rmsGeo;
-		double sumGeo = 0;
 		double mGeoX, mGeoY, mGeoZ;
-
-		double rmsStat;
-		double sumStat = 0;
 		double mStatX, mStatY, mStatZ;
-
-		double rmsAxel;
-		double sumAxel = 0;
 		double mAxelX, mAxelY, mAxelZ;
 
 		for (long int i = 0; i < *epochArrayIndex; i++)
 		{
-
 			mDunX += *dunSolArray[i]->x;
 			mDunY += *dunSolArray[i]->y;
 			mDunZ += *dunSolArray[i]->z;
@@ -588,11 +575,6 @@ int main(int argc, char **argv)
 			mAxelX += *axelSolArray[i]->x;
 			mAxelY += *axelSolArray[i]->y;
 			mAxelZ += *axelSolArray[i]->z;
-
-			sumDun += pow(spDist(*dunSolArray[i]->x, *dunSolArray[i]->y, *dunSolArray[i]->z, trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]), 2);
-			sumGeo += pow(spDist(*geoSolArray[i]->x, *geoSolArray[i]->y, *geoSolArray[i]->z, trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]), 2);
-			sumStat += pow(spDist(*statSolArray[i]->x, *statSolArray[i]->y, *statSolArray[i]->z, trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]), 2);
-			sumAxel += pow(spDist(*axelSolArray[i]->x, *axelSolArray[i]->y, *axelSolArray[i]->z, trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]), 2);
 		}
 
 		double mXyzDun[3] = {mDunX, mDunY, mDunZ};
@@ -615,6 +597,40 @@ int main(int argc, char **argv)
 		double mAeAxel[2] = {0.0, 0.0};
 		xyz2ae(mXyzAxel[0], mXyzAxel[1], mXyzAxel[2], mAeAxel);
 
+		/* RMSE and standard deviation */
+		double rmsDun;
+		double stdDun;
+		double sumDun = 0;
+		double sumDun2 = 0;
+
+		double rmsGeo;
+		double stdGeo;
+		double sumGeo = 0;
+		double sumGeo2 = 0;
+
+		double rmsStat;
+		double stdStat;
+		double sumStat = 0;
+		double sumStat2 = 0;
+
+		double rmsAxel;
+		double stdAxel;
+		double sumAxel = 0;
+		double sumAxel2 = 0;
+
+		for (long int i = 0; i < *epochArrayIndex; i++)
+		{
+			sumDun += pow(spDist(*dunSolArray[i]->x, *dunSolArray[i]->y, *dunSolArray[i]->z, trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]), 2);
+			sumGeo += pow(spDist(*geoSolArray[i]->x, *geoSolArray[i]->y, *geoSolArray[i]->z, trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]), 2);
+			sumStat += pow(spDist(*statSolArray[i]->x, *statSolArray[i]->y, *statSolArray[i]->z, trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]), 2);
+			sumAxel += pow(spDist(*axelSolArray[i]->x, *axelSolArray[i]->y, *axelSolArray[i]->z, trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]), 2);
+
+			sumDun2 += pow(spDist(*dunSolArray[i]->x, *dunSolArray[i]->y, *dunSolArray[i]->z, mXyzDun[0], mXyzDun[1], mXyzDun[2]), 2);
+			sumGeo2 += pow(spDist(*geoSolArray[i]->x, *geoSolArray[i]->y, *geoSolArray[i]->z, mXyzGeo[0], mXyzGeo[1], mXyzGeo[2]), 2);
+			sumStat2 += pow(spDist(*statSolArray[i]->x, *statSolArray[i]->y, *statSolArray[i]->z, mXyzStat[0], mXyzStat[1], mXyzStat[2]), 2);
+			sumAxel2 += pow(spDist(*axelSolArray[i]->x, *axelSolArray[i]->y, *axelSolArray[i]->z, mXyzAxel[0], mXyzAxel[1], mXyzAxel[2]), 2);
+		}
+
 		rmsDun = sqrt(sumDun / *epochArrayIndex);
 		rmsDun = rad2deg(rmsDun);
 
@@ -627,14 +643,28 @@ int main(int argc, char **argv)
 		rmsAxel = sqrt(sumAxel / *epochArrayIndex);
 		rmsAxel = rad2deg(rmsAxel);
 
+		stdDun = sqrt(sumDun2 / *epochArrayIndex);
+		stdDun = rad2deg(stdDun);
+
+		stdGeo = sqrt(sumGeo2 / *epochArrayIndex);
+		stdGeo = rad2deg(stdGeo);
+
+		stdStat = sqrt(sumStat2 / *epochArrayIndex);
+		stdStat = rad2deg(stdStat);
+
+		stdAxel = sqrt(sumAxel2 / *epochArrayIndex);
+		stdAxel = rad2deg(stdAxel);
+
 		printf("----------\nStatistics\n----------\nNumber of epochs in total = %li\n", *epochArrayIndex);
 		printf("Antenna truth by user input (x, y, z, az, el) = %lf, %lf, %lf, %lf, %lf\n", trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2], (double)TRUE_AZ, (double)TRUE_EL);
-		printf("Convergence (x, y, z, az, el)\n");
+		printf("\nConvergence (x, y, z, az, el)\n");
 		printf("Duncan's = %lf, %lf, %lf, %lf, %lf\n", mXyzDun[0], mXyzDun[1], mXyzDun[2], mAeDun[0], mAeDun[1]);
 		printf("Geometry = %lf, %lf, %lf, %lf, %lf\n", mXyzGeo[0], mXyzGeo[1], mXyzGeo[2], mAeGeo[0], mAeGeo[1]);
 		printf("Geo Stat = %lf, %lf, %lf, %lf, %lf\n", mXyzStat[0], mXyzStat[1], mXyzStat[2], mAeStat[0], mAeStat[1]);
 		printf("Axelrad's = %lf, %lf, %lf, %lf, %lf\n", mXyzAxel[0], mXyzAxel[1], mXyzAxel[2], mAeAxel[0], mAeAxel[1]);
-		printf("Accuracy (RMSE)\n");
+		printf("\nStandard deviation\n");
+		printf("Duncan's = % lf deg\nGeometry = % lf deg\nGeo Stat = % lf deg\nAxelrad's = %lf deg\n", stdDun, stdGeo, stdStat, stdAxel);
+		printf("\nAccuracy (RMSE)\n");
 		printf("Duncan's = % lf deg\nGeometry = % lf deg\nGeo Stat = % lf deg\nAxelrad's = %lf deg\n", rmsDun, rmsGeo, rmsStat, rmsAxel);
 
 		/*
