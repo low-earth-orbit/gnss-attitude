@@ -122,15 +122,21 @@ void xyz2ae(double x, double y, double z, double *azel)
 {
 	double az, el;
 	double r = sqrt(pow(x, 2) + pow(y, 2) + pow(z, 2));
-	if (y == 0)
-	{ // catch y=0
-		az = 90;
-		printf("Found y = 0 in xyz2ae()\n");
+
+	if (y == 0 && x > 0)
+	{
+		azel[0] = 90.0;
+		azel[1] = 0.0;
 	}
-	else if (x / y == M_PI / 2)
-	{			   // catch tan(pi/2)
-		az = -999; //undefined
-		printf("Found x/y = pi/2 in xyz2ae(). Az set to -999 Undefined.\n");
+	else if (y == 0 && x < 0)
+	{
+		azel[0] = 270.0;
+		azel[1] = 0.0;
+	}
+	else if (y == 0 && x == 0)
+	{
+		azel[0] = -999; //undefined
+		azel[1] = 0.0;
 	}
 	else
 	{
@@ -141,26 +147,32 @@ void xyz2ae(double x, double y, double z, double *azel)
 			az = az + 2.0 * M_PI;
 		}
 		az = rad2deg(az);
+
+		el = asin(z / r); // r should not be 0
+		el = rad2deg(el);
+		azel[0] = az;
+		azel[1] = el;
 	}
-	el = asin(z / r); // r should not be 0
-	el = rad2deg(el);
-	azel[0] = az;
-	azel[1] = el;
 }
 
 void xyz2aeSol(double x, double y, double z, Sol *sol)
 {
 	double az, el;
 	double r = sqrt(pow(x, 2) + pow(y, 2) + pow(z, 2));
-	if (y == 0)
-	{ // catch y=0
-		az = 90;
-		printf("Found y = 0 in xyz2ae()\n");
+	if (y == 0 && x > 0)
+	{
+		*(sol->az) = 90.0;
+		*(sol->el) = 0.0;
 	}
-	else if (x / y == M_PI / 2)
-	{			   // catch tan(pi/2)
-		az = -999; //undefined
-		printf("Found x/y = pi/2 in xyz2ae(). Az set to -999 Undefined.\n");
+	else if (y == 0 && x < 0)
+	{
+		*(sol->az) = 270.0;
+		*(sol->el) = 0.0;
+	}
+	else if (y == 0 && x == 0)
+	{
+		*(sol->az) = -999; //undefined
+		*(sol->el) = 0.0;
 	}
 	else
 	{
@@ -171,11 +183,12 @@ void xyz2aeSol(double x, double y, double z, Sol *sol)
 			az = az + 2.0 * M_PI;
 		}
 		az = rad2deg(az);
+
+		el = asin(z / r); // r should not be 0
+		el = rad2deg(el);
+		*(sol->az) = az;
+		*(sol->el) = el;
 	}
-	el = asin(z / r); // r should not be 0
-	el = rad2deg(el);
-	*(sol->az) = az;
-	*(sol->el) = el;
 }
 
 /*
