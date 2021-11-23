@@ -345,14 +345,7 @@ int main(int argc, char **argv)
 		xyz2aeSol(*(geoSol->x), *(geoSol->y), *(geoSol->z), geoSol);
 
 		/* adjust the elevation angle */
-		if (*(geoSol->el) >= 40.60836353)
-		{
-			*(geoSol->el) = -0.0098 * pow(*(geoSol->el), 2) + 3.0941 * *(geoSol->el) - 109.54; // incorrect, to be updated
-		}
-		else
-		{
-			*(geoSol->el) = 0.0043 * pow(*(geoSol->el), 2) + 2.0521 * *(geoSol->el) - 90.205; // incorrect, to be updated // temporary solution, not direct solution by geometry
-		}
+		*(geoSol->el) = -(7 / 100000) * pow(*(geoSol->el), 3) + 0.0066 * pow(*(geoSol->el), 2) + 2.0091 * *(geoSol->el) - 90.182; // temporary solution, not direct solution by geometry
 
 		if (*(geoSol->el) > 90)
 		{
@@ -411,7 +404,17 @@ int main(int argc, char **argv)
 
 		/* elevation angle */
 		double std = cirStdAzEpoch(epochArray[i]);
-		double elFun = std * 98.323 - 262.77; // <- this relationship is built through simulation
+		//printf("%lf\n", std);
+		double elFun;
+		if (std > 2.710702311)
+		{
+			elFun = 578.15 * pow(std, 5) - 8881.5 * pow(std, 4) + 54617 * pow(std, 3) - 168188 * pow(std, 2) + 259628 * std - 160897; // this relationship is built through simulation
+		}
+		else
+		{
+			elFun = -266.22 * pow(std, 5) + 3104.6 * pow(std, 4) - 14196 * pow(std, 3) + 31949 * pow(std, 2) - 35462 * std + 15463;
+		}
+
 		if (elFun > 90)
 		{ // catch overflow
 			elFun = 90;
