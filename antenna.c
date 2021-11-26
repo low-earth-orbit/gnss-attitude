@@ -520,15 +520,19 @@ int main(int argc, char **argv)
 		*(axelSol->y) = C(1);
 		*(axelSol->z) = C(2);
 
+		/* least squares stats */
+		//printf("# covariance matrix:\n");
+		//printf("[ %+.5e, %+.5e, %+.5e  \n", COV(0, 0), COV(0, 1), COV(0, 2));
+		//printf("  %+.5e, %+.5e, %+.5e  \n", COV(1, 0), COV(1, 1), COV(1, 2));
+		//printf("  %+.5e, %+.5e, %+.5e ]\n", COV(2, 0), COV(2, 1), COV(2, 2));
+		//printf("# chisq = %g\n", chisq);
 		/*
-		printf("# covariance matrix:\n");
-		printf("[ %+.5e, %+.5e, %+.5e  \n",
-			   COV(0, 0), COV(0, 1), COV(0, 2));
-		printf("  %+.5e, %+.5e, %+.5e  \n",
-			   COV(1, 0), COV(1, 1), COV(1, 2));
-		printf("  %+.5e, %+.5e, %+.5e ]\n",
-			   COV(2, 0), COV(2, 1), COV(2, 2));
-		printf("# chisq = %g\n", chisq);
+		double redChiSq = chisq / (n - 3); // reduced chisq = chisq / (# of signals - 3)
+		double lsStdX = rad2deg(asin(sqrt(redChiSq * COV(0, 0))));
+		double lsStdY = rad2deg(asin(sqrt(redChiSq * COV(1, 1))));
+		double lsStdZ = rad2deg(asin(sqrt(redChiSq * COV(2, 2))));
+		double lsStdA = rad2deg(asin(sqrt(redChiSq * COV(0, 0) + redChiSq * COV(1, 1) + redChiSq * COV(2, 2))));
+		printf("standard deviation of x, y, z from least squares\nx = %lf deg, y = %lf deg, z = %lf deg, 3D = %lf deg\n", lsStdX, lsStdY, lsStdZ, lsStdA);
 		*/
 
 		/* free matrices for LS */
@@ -661,13 +665,12 @@ int main(int argc, char **argv)
 	double sumStat = 0;
 	double rmsAxel;
 	double sumAxel = 0;
-	/*
-	double rmsAxelX, rmsAxelY, rmsAxelZ, rmsAxelA;
+
+	double rmsAxelX, rmsAxelY, rmsAxelZ;
 	double sumAxelX = 0;
 	double sumAxelY = 0;
 	double sumAxelZ = 0;
-	double sumAxelA = 0;
-	*/
+	//double sumAxelA = 0;
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
@@ -675,13 +678,12 @@ int main(int argc, char **argv)
 		sumGeo += pow(spDist(*geoSolArray[i]->x, *geoSolArray[i]->y, *geoSolArray[i]->z, trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]), 2);
 		sumStat += pow(spDist(*statSolArray[i]->x, *statSolArray[i]->y, *statSolArray[i]->z, trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]), 2);
 		sumAxel += pow(spDist(*axelSolArray[i]->x, *axelSolArray[i]->y, *axelSolArray[i]->z, trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]), 2);
-		//sumAxelX += pow((*axelSolArray[i]->x - trueAntennaXyz[0]), 2);
-		//sumAxelY += pow((*axelSolArray[i]->y - trueAntennaXyz[1]), 2);
-		//sumAxelZ += pow((*axelSolArray[i]->z - trueAntennaXyz[2]), 2);
+
+		sumAxelX += pow((*axelSolArray[i]->x - trueAntennaXyz[0]), 2);
+		sumAxelY += pow((*axelSolArray[i]->y - trueAntennaXyz[1]), 2);
+		sumAxelZ += pow((*axelSolArray[i]->z - trueAntennaXyz[2]), 2);
 
 		sumDun2 += pow(spDist(*dunSolArray[i]->x, *dunSolArray[i]->y, *dunSolArray[i]->z, mXyzDun[0], mXyzDun[1], mXyzDun[2]), 2);
-		//printf("%lf %lf %lf %lf %lf\n", *dunSolArray[i]->x, *dunSolArray[i]->y, *dunSolArray[i]->z, mXyzDun[0], mXyzDun[1], mXyzDun[2]);
-		//printf("%lf\n", sumDun2);
 		sumGeo2 += pow(spDist(*geoSolArray[i]->x, *geoSolArray[i]->y, *geoSolArray[i]->z, mXyzGeo[0], mXyzGeo[1], mXyzGeo[2]), 2);
 		sumStat2 += pow(spDist(*statSolArray[i]->x, *statSolArray[i]->y, *statSolArray[i]->z, mXyzStat[0], mXyzStat[1], mXyzStat[2]), 2);
 		sumAxel2 += pow(spDist(*axelSolArray[i]->x, *axelSolArray[i]->y, *axelSolArray[i]->z, mXyzAxel[0], mXyzAxel[1], mXyzAxel[2]), 2);
@@ -696,17 +698,15 @@ int main(int argc, char **argv)
 	rmsAxel = sqrt(sumAxel / *epochArrayIndex);
 	rmsAxel = rad2deg(rmsAxel);
 
-	/* by component
+	/* by component */
 	rmsAxelX = sqrt(sumAxelX / *epochArrayIndex);
-	//rmsAxelX = rad2deg(rmsAxelX);
+	rmsAxelX = rad2deg(asin(rmsAxelX));
 	rmsAxelY = sqrt(sumAxelY / *epochArrayIndex);
-	//rmsAxelY = rad2deg(rmsAxelY);
+	rmsAxelY = rad2deg(asin(rmsAxelY));
 	rmsAxelZ = sqrt(sumAxelZ / *epochArrayIndex);
-	//rmsAxelZ = rad2deg(rmsAxelZ);
-	sumAxelA = sumAxelX + sumAxelY + sumAxelZ;
-	rmsAxelA = sqrt(sumAxelA / *epochArrayIndex);
-	rmsAxelA = rad2deg(asin(rmsAxelA));
-	*/
+	rmsAxelZ = rad2deg(asin(rmsAxelZ));
+	double rmsAxelA = sqrt(pow(rmsAxelX, 2) + pow(rmsAxelY, 2) + pow(rmsAxelZ, 2));
+	double rmsAxelAz = sqrt(pow(rmsAxelA, 2) - pow(rmsAxelZ, 2));
 
 	stdDun = sqrt(sumDun2 / *epochArrayIndex);
 	stdDun = rad2deg(stdDun);
@@ -733,7 +733,7 @@ int main(int argc, char **argv)
 	{
 		printf("\nAccuracy (RMSE)\n");
 		printf("Duncan's = % lf deg\nGeometry = % lf deg\nGeo Stat = % lf deg\nAxelrad's = %lf deg\n", rmsDun, rmsGeo, rmsStat, rmsAxel);
-		//printf("x = % lf\ny = % lf\nz = % lf\noverall = %lf deg\n", rmsAxelX, rmsAxelY, rmsAxelZ, rmsAxelA);
+		printf("\nAccuracy (RMSE) by component\nx = % lf deg\ny = % lf deg\nz = % lf deg\naz = %lf deg\nel = %lf deg\n3D = %lf deg\n", rmsAxelX, rmsAxelY, rmsAxelZ, rmsAxelAz, rmsAxelZ, rmsAxelA);
 	}
 
 	/* close output file */
