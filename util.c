@@ -300,7 +300,7 @@ double spStdEpoch(Epoch *epoch)
 }
 /*
 	Calculate spherical distance (great-circle distance) between two points on UNIT sphere.
-	The output is the distance also the angular distance in rad if the two points are on UNIT sphere.
+	The output is the angular distance in rad if the two points are on UNIT sphere.
 */
 double spDist(double a1, double a2, double a3, double b1, double b2, double b3)
 {

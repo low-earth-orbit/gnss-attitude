@@ -15,6 +15,8 @@ sudo apt-get install libgsl-dev
 gcc -Wall antenna.c util.c struct.c snr.c -o antenna -lgsl -lgslcblas -lm
 valgrind --tool=memcheck --leak-check=yes --leak-check=full -s --track-origins=yes --show-leak-kinds=all ./antenna
 */
+#define C(i) (gsl_vector_get(c, (i)))
+#define COV(i, j) (gsl_matrix_get(cov, (i), (j)))
 
 int main(int argc, char **argv)
 {
@@ -512,16 +514,22 @@ int main(int argc, char **argv)
 		gsl_multifit_linear_workspace *work = gsl_multifit_linear_alloc(n, 3);
 		gsl_multifit_wlinear(X, w, y, c, cov, &chisq, work);
 		gsl_multifit_linear_free(work);
-		/* clang-format off */
-
-		#define C(i) (gsl_vector_get(c, (i)))
-		#define COV(i, j) (gsl_matrix_get(cov, (i), (j)))
-		/* clang-format on */
 
 		/* save best fit */
 		*(axelSol->x) = C(0);
 		*(axelSol->y) = C(1);
 		*(axelSol->z) = C(2);
+
+		/*
+		printf("# covariance matrix:\n");
+		printf("[ %+.5e, %+.5e, %+.5e  \n",
+			   COV(0, 0), COV(0, 1), COV(0, 2));
+		printf("  %+.5e, %+.5e, %+.5e  \n",
+			   COV(1, 0), COV(1, 1), COV(1, 2));
+		printf("  %+.5e, %+.5e, %+.5e ]\n",
+			   COV(2, 0), COV(2, 1), COV(2, 2));
+		printf("# chisq = %g\n", chisq);
+		*/
 
 		/* free matrices for LS */
 		gsl_matrix_free(X);
@@ -653,6 +661,13 @@ int main(int argc, char **argv)
 	double sumStat = 0;
 	double rmsAxel;
 	double sumAxel = 0;
+	/*
+	double rmsAxelX, rmsAxelY, rmsAxelZ, rmsAxelA;
+	double sumAxelX = 0;
+	double sumAxelY = 0;
+	double sumAxelZ = 0;
+	double sumAxelA = 0;
+	*/
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
@@ -660,6 +675,9 @@ int main(int argc, char **argv)
 		sumGeo += pow(spDist(*geoSolArray[i]->x, *geoSolArray[i]->y, *geoSolArray[i]->z, trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]), 2);
 		sumStat += pow(spDist(*statSolArray[i]->x, *statSolArray[i]->y, *statSolArray[i]->z, trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]), 2);
 		sumAxel += pow(spDist(*axelSolArray[i]->x, *axelSolArray[i]->y, *axelSolArray[i]->z, trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]), 2);
+		//sumAxelX += pow((*axelSolArray[i]->x - trueAntennaXyz[0]), 2);
+		//sumAxelY += pow((*axelSolArray[i]->y - trueAntennaXyz[1]), 2);
+		//sumAxelZ += pow((*axelSolArray[i]->z - trueAntennaXyz[2]), 2);
 
 		sumDun2 += pow(spDist(*dunSolArray[i]->x, *dunSolArray[i]->y, *dunSolArray[i]->z, mXyzDun[0], mXyzDun[1], mXyzDun[2]), 2);
 		//printf("%lf %lf %lf %lf %lf\n", *dunSolArray[i]->x, *dunSolArray[i]->y, *dunSolArray[i]->z, mXyzDun[0], mXyzDun[1], mXyzDun[2]);
@@ -677,6 +695,18 @@ int main(int argc, char **argv)
 	rmsStat = rad2deg(rmsStat);
 	rmsAxel = sqrt(sumAxel / *epochArrayIndex);
 	rmsAxel = rad2deg(rmsAxel);
+
+	/* by component
+	rmsAxelX = sqrt(sumAxelX / *epochArrayIndex);
+	//rmsAxelX = rad2deg(rmsAxelX);
+	rmsAxelY = sqrt(sumAxelY / *epochArrayIndex);
+	//rmsAxelY = rad2deg(rmsAxelY);
+	rmsAxelZ = sqrt(sumAxelZ / *epochArrayIndex);
+	//rmsAxelZ = rad2deg(rmsAxelZ);
+	sumAxelA = sumAxelX + sumAxelY + sumAxelZ;
+	rmsAxelA = sqrt(sumAxelA / *epochArrayIndex);
+	rmsAxelA = rad2deg(asin(rmsAxelA));
+	*/
 
 	stdDun = sqrt(sumDun2 / *epochArrayIndex);
 	stdDun = rad2deg(stdDun);
@@ -703,6 +733,7 @@ int main(int argc, char **argv)
 	{
 		printf("\nAccuracy (RMSE)\n");
 		printf("Duncan's = % lf deg\nGeometry = % lf deg\nGeo Stat = % lf deg\nAxelrad's = %lf deg\n", rmsDun, rmsGeo, rmsStat, rmsAxel);
+		//printf("x = % lf\ny = % lf\nz = % lf\noverall = %lf deg\n", rmsAxelX, rmsAxelY, rmsAxelZ, rmsAxelA);
 	}
 
 	/* close output file */
