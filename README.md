@@ -18,7 +18,7 @@ The software is under development. No releases have been published.
 5. The LOS vectors from Step 2 and off-boresight angles from Step 4 are put into a multiple linear regression to determine the antenna boresight vector.
 
 ## Performance
-* Using a general SNR mapping function, the system delivers an accuracy of 5° - 20° (RMS) while the antenna is pointing up.
+* Using a general SNR mapping function, the system delivers an accuracy of 5° - 20° (RMS).
 * Better performance can be achieved if calibration is performed.
 
 ## Prerequisites
