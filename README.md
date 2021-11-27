@@ -7,19 +7,26 @@ gnss-attitude is being developed for future use in VIOLET, a nano-satellite by [
 2. All four globally operating navigation satellite systems (GPS, BeiDou, GLONASS and Galileo) are incorporated.
 3. Support for multiple frequencies.
 
-Here is the summary of the designed AD algorithm:
+## Under Development
+The software is under development. No releases published.
+
+## Designed AD algorithm
 1. Before determining the attitude using observation data, a calibration data set is collected. Using the calibration data set for each constellation, a multiparameter nonlinear regression is used to obtain SNR adjustment parameters for each satellite group and the SNR mapping function.
 2. For a given epoch, the line-of-sight (LOS) vectors from satellite to receiver are calculated from satellite and receiver locations. The satellite and receiver locations are derived from the GNSS navigation and observation files.
 3. SNR values from the observation file are adjusted according to the adjustment terms developed in Step 1.
 4. The off-boresight angles can be found by the SNR mapping function developed in Step 1 and the adjusted SNR values from Step 3.
 5. The LOS vectors from Step 2 and off-boresight angles from Step 4 are put into a multiple linear regression to determine the antenna boresight vector.
 
+## Performance
+* Using a general SNR mapping function, the system delivers an accuracy of 5° - 20° (rms) while antenna is pointing up.
+* Better performance can be achieved if SNR values are adjusted and the mapping function is generated using calibration data set.
+
 ## Prerequisites
 1. Linux environment
 2. [RTKLIB](http://www.rtklib.com/)
 3. GNU Scientific Library
 
-       sudo apt-get install libgsl-dev
+        sudo apt-get install libgsl-dev
 
 4. GNU C Compiler
 
