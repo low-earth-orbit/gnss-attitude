@@ -87,7 +87,7 @@ void normalize(Sol *sol)
 
 /*
 	Input: azimuth and elevation in degrees
-	Output: array of the resulting UNIT vector (x, y, z)
+	Output: array of the resulting UNIT vector (x, y, z) i.e. (e, n, u)
 */
 void ae2xyz(double az_deg, double el_deg, double *xyz)
 {
@@ -114,14 +114,14 @@ void ae2xyzSol(double az_deg, double el_deg, Sol *sol)
 }
 
 /*
-	Input x, y, z local coordinates known as E(x) N(y) U(x)
-		The vector can be of unit or non-unit length
+	Input x, y, z local coordinates, E(x) N(y) U(x)
+		Don't mistake this x, y, z as ECEF coordinates
 	Output azimuth and elevation angle in degrees
 */
 void xyz2ae(double x, double y, double z, double *azel)
 {
 	double az, el;
-	double r = sqrt(pow(x, 2) + pow(y, 2) + pow(z, 2));
+	double r = sqrt(pow(x, 2) + pow(y, 2) + pow(z, 2)); // the vector can be of unit or non-unit length
 
 	if (y == 0 && x > 0)
 	{
@@ -155,6 +155,11 @@ void xyz2ae(double x, double y, double z, double *azel)
 	}
 }
 
+/*
+	Input local coordinates, E(x) N(y) U(x)
+		Don't mistake this x, y, z as ECEF coordinates
+	Sets the values (azimuth and elevation angle in degrees) in Sol object 
+*/
 void xyz2aeSol(double x, double y, double z, Sol *sol)
 {
 	double az, el;
@@ -245,10 +250,8 @@ double cirVar(double array[], int n)
 }
 
 /*
-	Calculate circular variance of azimuths
-
+	Calculate circular variance of azimuth
 	*epoch: pointer to Epoch object
-	
 	output: circular variance of azimuths
 */
 double cirStdAzEpoch(Epoch *epoch)
@@ -270,10 +273,8 @@ double cirStdAzEpoch(Epoch *epoch)
 }
 
 /*
-	Calculate spherical standard deviation of a set of cartesian coordinates (x, y, z) in the epoch
-
+	Calculate spherical standard deviation of a set of cartesian coordinates (x, y, z) i.e. (e, n, u) in the epoch
 	*epoch: pointer to Epoch object
-	
 	output: spherical standard deviation
 */
 double spStdEpoch(Epoch *epoch)
@@ -298,6 +299,7 @@ double spStdEpoch(Epoch *epoch)
 	double std = sqrt(1 - rsq);
 	return std;
 }
+
 /*
 	Calculate spherical distance (great-circle distance) between two points on UNIT sphere.
 	The output is the angular distance in rad if the two points are on UNIT sphere.

@@ -32,7 +32,7 @@ Sol *createSol(double *x, double *y, double *z, double *az, double *el)
 	Sol *solObj = malloc(sizeof(Sol));
 	(*solObj).x = x;
 	(*solObj).y = y;
-	(*solObj).z = z;
+	(*solObj).z = z; // x is E, y is N, z is U
 	(*solObj).az = az;
 	(*solObj).el = el;
 	return solObj;

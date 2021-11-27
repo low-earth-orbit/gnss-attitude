@@ -20,7 +20,7 @@ typedef struct Epoch
 
 typedef struct Sol
 {
-	double *x, *y, *z, *az, *el;
+	double *x, *y, *z, *az, *el; // x is E, y is N, z is U
 } Sol;
 
 Sat *createSat(char *time, char *prn, double *az, double *el, double *snr, double *snr2);
