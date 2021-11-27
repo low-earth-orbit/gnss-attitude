@@ -28,9 +28,6 @@ int main(int argc, char **argv)
 	FILE *fp = NULL;
 	FILE *fp2 = NULL;
 	FILE *fpw = NULL;
-	//fp = fopen("input.txt", "r");
-	//fp2 = fopen("input2.txt", "r");
-	//fpw = fopen("output.txt", "w");
 
 	if (argc == 1)
 	{
@@ -129,13 +126,13 @@ int main(int argc, char **argv)
 			/* adjust SNR here */
 			if (!SIMULATION)
 			{
-				//printf("SNR (meas) = %lf\t", *snr2);
+				//printf("SNR (meas) = %.2f\t", *snr2);
 				adjSnr2(prn, el, snr2);
-				//printf("SNR (adj) = %lf\n", *snr2);
+				//printf("SNR (adj) = %.2f\n", *snr2);
 			}
 			double *snr = (double *)malloc(sizeof(double));
 			*snr = -1.0;
-			//printf("snr = %lf\n", *snr);
+			//printf("snr = %.2f\n", *snr);
 			satArray[satArrayIndex] = createSat(time, prn, az, el, snr, snr2); // Add each sat to sat array
 			satArrayIndex++;
 
@@ -256,194 +253,11 @@ int main(int argc, char **argv)
 	//printEpochArray(epochArray, *epochArrayIndex);
 
 	/*
-		Duncan's method (Duncan & Dunn, 1998) -- Vector sum of signal-to-noise ratio (SNR) weighted line-of-sight (LOS) vectors. Duncan's method is biased toward the spherical area where the satellite signals come from. If the antenna's elevation angle is negative, Duncan's method yields a positive elevation angle estimate.
-	*/
-	Sol **dunSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
-	// print header of the output
-	fprintf(fpw, "---------------\nDuncan's method\n---------------\nEpoch (GPST), # of Signal, X(E), Y(N), Z(U), Az(deg), El(deg)\n");
-
-	for (long int i = 0; i < *epochArrayIndex; i++)
-	{
-		int n = *(epochArray[i]->numSat);
-		Sol *dunSol = malloc(sizeof(Sol));
-		dunSol->x = calloc(1, sizeof(double));
-		dunSol->y = calloc(1, sizeof(double));
-		dunSol->z = calloc(1, sizeof(double));
-		dunSol->az = calloc(1, sizeof(double));
-		dunSol->el = calloc(1, sizeof(double));
-
-		for (int j = 0; j < n; j++)
-		{
-			/* calculate LOS vector from azimuth and elevation*/
-			double xyz[3];
-			ae2xyz(*(*epochArray[i]).epochSatArray[j]->az, *(*epochArray[i]).epochSatArray[j]->el, xyz);
-
-			/* weight LOS vector by SNR */
-			if (*(*epochArray[i]).epochSatArray[j]->snr < 0)
-			{
-				//printf("snr < 0\n");
-				xyz[0] *= *(*epochArray[i]).epochSatArray[j]->snr2;
-				xyz[1] *= *(*epochArray[i]).epochSatArray[j]->snr2;
-				xyz[2] *= *(*epochArray[i]).epochSatArray[j]->snr2;
-			}
-			else
-			{
-				xyz[0] *= *(*epochArray[i]).epochSatArray[j]->snr;
-				xyz[1] *= *(*epochArray[i]).epochSatArray[j]->snr;
-				xyz[2] *= *(*epochArray[i]).epochSatArray[j]->snr;
-			}
-			/* add to vector sum */
-			*(dunSol->x) += xyz[0];
-			*(dunSol->y) += xyz[1];
-			*(dunSol->z) += xyz[2];
-		}
-
-		/* convert the sum to unit vector to get xyz solution*/
-		normalize(dunSol);
-
-		/* from xyz solution derive azimuth-elevation solution */
-		xyz2aeSol(*(dunSol->x), *(dunSol->y), *(dunSol->z), dunSol);
-
-		/* print result */
-		fprintf(fpw, "%s,%i,%lf,%lf,%lf,%lf,%lf\n", (*epochArray[i]).time, *(*epochArray[i]).numSat, *(dunSol->x), *(dunSol->y), *(dunSol->z), *(dunSol->az), *(dunSol->el));
-
-		dunSolArray[i] = dunSol;
-	}
-
-	/*
-		LOS with geometric correction made to elevation angle -- vector sum of non-weighted line-of-sight (LOS) vectors with geometry adjustment for elevation angle. This method is designed by the author of the program to address the geometry issue existing in Duncan's method.
-	*/
-	Sol **geoSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
-	// print header of the output
-	fprintf(fpw, "---------------\nGeometry method\n---------------\nEpoch (GPST), # of Signal, X(E), Y(N), Z(U), Az(deg), El(deg)\n");
-
-	for (long int i = 0; i < *epochArrayIndex; i++)
-	{
-		int n = *(epochArray[i]->numSat);
-		Sol *geoSol = malloc(sizeof(Sol));
-		geoSol->x = calloc(1, sizeof(double));
-		geoSol->y = calloc(1, sizeof(double));
-		geoSol->z = calloc(1, sizeof(double));
-		geoSol->az = calloc(1, sizeof(double));
-		geoSol->el = calloc(1, sizeof(double));
-
-		for (int j = 0; j < n; j++)
-		{
-			/* calculate LOS vector from azimuth and elevation*/
-			double xyz[3];
-			ae2xyz(*(*epochArray[i]).epochSatArray[j]->az, *(*epochArray[i]).epochSatArray[j]->el, xyz);
-
-			/* add to vector sum */
-			*(geoSol->x) += xyz[0];
-			*(geoSol->y) += xyz[1];
-			*(geoSol->z) += xyz[2];
-		}
-
-		/* convert the sum to unit vector to get xyz solution*/
-		normalize(geoSol);
-
-		/* from xyz solution derive azimuth-elevation solution */
-		xyz2aeSol(*(geoSol->x), *(geoSol->y), *(geoSol->z), geoSol);
-
-		/* adjust the elevation angle */
-		*(geoSol->el) = -0.0000742675 * pow(*(geoSol->el), 3) + 0.0065513541 * pow(*(geoSol->el), 2) + 2.0091058480 * *(geoSol->el) - 90.1822264375; // temporary solution, not directly by geometry
-
-		if (*(geoSol->el) > 90)
-		{
-			*(geoSol->el) = 90;
-		}
-		else if (*(geoSol->el) < -90)
-		{
-			*(geoSol->el) = -90;
-		}
-
-		//*(geoSol->el) = *(geoSol->el) * 2.0 - 90.0; // this is incorrect
-
-		/* recompute xyz solution using adjusted elevation angle */
-		ae2xyzSol(*(geoSol->az), *(geoSol->el), geoSol);
-
-		/* save result */
-		fprintf(fpw, "%s,%i,%lf,%lf,%lf,%lf,%lf\n", (*epochArray[i]).time, *(*epochArray[i]).numSat, *(geoSol->x), *(geoSol->y), *(geoSol->z), *(geoSol->az), *(geoSol->el));
-
-		/* save to array */
-		geoSolArray[i] = geoSol;
-	}
-
-	/*
-		LOS with elevation angle determined by azimuth dispersion -- vector sum of non-weighted line-of-sight (LOS) vectors for azimuth. elevaltion angle is from the correlation between {circular standard deviation of azimuth} and {elevation angle}. The relationship can be built through simulation. This method is designed by the author of the program to address the geometry issue existing in LOS summation method.
-	*/
-	Sol **statSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
-	// print header of the output
-	fprintf(fpw, "----------------\nGeo Stats method\n----------------\nEpoch (GPST), # of Signal, X(E), Y(N), Z(U), Az(deg), El(deg)\n");
-	for (long int i = 0; i < *epochArrayIndex; i++)
-	{
-		int n = *(epochArray[i]->numSat);
-		Sol *statSol = malloc(sizeof(Sol));
-		statSol->x = calloc(1, sizeof(double));
-		statSol->y = calloc(1, sizeof(double));
-		statSol->z = calloc(1, sizeof(double));
-		statSol->az = calloc(1, sizeof(double));
-		statSol->el = calloc(1, sizeof(double));
-
-		for (int j = 0; j < n; j++)
-		{
-			/* calculate LOS vector from azimuth and elevation*/
-			double xyz[3];
-			ae2xyz(*(*epochArray[i]).epochSatArray[j]->az, *(*epochArray[i]).epochSatArray[j]->el, xyz);
-
-			/* add to vector sum */
-			*(statSol->x) += xyz[0];
-			*(statSol->y) += xyz[1];
-			*(statSol->z) += xyz[2];
-		}
-
-		/* convert the sum to unit vector to get xyz solution*/
-		normalize(statSol);
-
-		/* from xyz solution derive azimuth-elevation solution */
-		xyz2aeSol(*(statSol->x), *(statSol->y), *(statSol->z), statSol);
-
-		/* elevation angle */
-		double std = cirStdAzEpoch(epochArray[i]);
-		//printf("%lf\n", std);
-		double elFun;
-		if (std > 2.710702311)
-		{
-			elFun = 578.1522625536 * pow(std, 5) - 8881.4698485695 * pow(std, 4) + 54617.1040395365 * pow(std, 3) - 168188.1911699130 * pow(std, 2) + 259628.4852635040 * std - 160896.9965363290; // this relationship is built through simulation
-		}
-		else
-		{
-			elFun = -266.2208263166 * pow(std, 5) + 3104.6094838900 * pow(std, 4) - 14195.9262539908 * pow(std, 3) + 31949.0577990265 * pow(std, 2) - 35462.3504890643 * std + 15463.1108569713;
-		}
-
-		if (elFun > 90)
-		{ // catch overflow
-			elFun = 90;
-		}
-		else if (elFun <= -90)
-		{
-			elFun = -90;
-		}
-		*(statSol->el) = elFun;
-		//double std = spStdEpoch(epochArray[i]);
-		//*(statSol->el) = 383.71 * std * std - 26.155 * std - 167.54;
-
-		/* recompute xyz solution using new elevation angle */
-		ae2xyzSol(*(statSol->az), *(statSol->el), statSol);
-
-		/* print result */
-		fprintf(fpw, "%s,%i,%lf,%lf,%lf,%lf,%lf\n", (*epochArray[i]).time, *(*epochArray[i]).numSat, *(statSol->x), *(statSol->y), *(statSol->z), *(statSol->az), *(statSol->el));
-
-		/* save to array */
-		statSolArray[i] = statSol;
-	}
-
-	/*
 		Axelrad's method (Axelrad & Behre, 1999) -- Compared to Duncan's method, this is the proper use of SNR in determining antenna boresight vector. It requires antenna gain mapping (the relationship between off-boresight angle and SNR for the antenna) and adjustment to measured SNR.
 	*/
 	Sol **axelSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
 
-	fprintf(fpw, "----------------\nAxelrad's method\n----------------\nEpoch (GPST), # of Signal, X(E), Y(N), Z(U), Az(deg), El(deg)\n");
+	fprintf(fpw, "Epoch (GPST), # of Signal, X(E), Y(N), Z(U), Az(deg), El(deg)\n");
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
@@ -532,7 +346,7 @@ int main(int argc, char **argv)
 		double lsStdY = rad2deg(asin(sqrt(redChiSq * COV(1, 1))));
 		double lsStdZ = rad2deg(asin(sqrt(redChiSq * COV(2, 2))));
 		double lsStdA = rad2deg(asin(sqrt(redChiSq * COV(0, 0) + redChiSq * COV(1, 1) + redChiSq * COV(2, 2))));
-		printf("standard deviation of x, y, z from least squares\nx = %lf deg, y = %lf deg, z = %lf deg, 3D = %lf deg\n", lsStdX, lsStdY, lsStdZ, lsStdA);
+		printf("standard deviation of x, y, z from least squares\nx = %.2f°, y = %.2f°, z = %.2f°, 3D = %.2f°\n", lsStdX, lsStdY, lsStdZ, lsStdA);
 		*/
 
 		/* free matrices for LS */
@@ -598,47 +412,15 @@ int main(int argc, char **argv)
 	/*
 		Statistics
 	*/
-
 	/* convergence */
-	double mDunX = 0, mDunY = 0, mDunZ = 0;
-	double mGeoX = 0, mGeoY = 0, mGeoZ = 0;
-	double mStatX = 0, mStatY = 0, mStatZ = 0;
 	double mAxelX = 0, mAxelY = 0, mAxelZ = 0;
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
-		mDunX = *dunSolArray[i]->x;
-		mDunY += *dunSolArray[i]->y;
-		mDunZ += *dunSolArray[i]->z;
-		mGeoX += *geoSolArray[i]->x;
-		mGeoY += *geoSolArray[i]->y;
-		mGeoZ += *geoSolArray[i]->z;
-
-		mStatX += *statSolArray[i]->x;
-		mStatY += *statSolArray[i]->y;
-		mStatZ += *statSolArray[i]->z;
-
 		mAxelX += *axelSolArray[i]->x;
 		mAxelY += *axelSolArray[i]->y;
 		mAxelZ += *axelSolArray[i]->z;
 	}
-
-	double mXyzDun[3] = {mDunX, mDunY, mDunZ};
-	normalizeXyz(mXyzDun);
-	double mAeDun[2] = {0.0, 0.0};
-	xyz2ae(mXyzDun[0], mXyzDun[1], mXyzDun[2], mAeDun);
-
-	//printf("%lf %lf %lf \n", mDunX, mDunY, mDunZ);
-
-	double mXyzGeo[3] = {mGeoX, mGeoY, mGeoZ};
-	normalizeXyz(mXyzGeo);
-	double mAeGeo[2] = {0.0, 0.0};
-	xyz2ae(mXyzGeo[0], mXyzGeo[1], mXyzGeo[2], mAeGeo);
-
-	double mXyzStat[3] = {mStatX, mStatY, mStatZ};
-	normalizeXyz(mXyzStat);
-	double mAeStat[2] = {0.0, 0.0};
-	xyz2ae(mXyzStat[0], mXyzStat[1], mXyzStat[2], mAeStat);
 
 	double mXyzAxel[3] = {mAxelX, mAxelY, mAxelZ};
 	normalizeXyz(mXyzAxel);
@@ -646,59 +428,31 @@ int main(int argc, char **argv)
 	xyz2ae(mXyzAxel[0], mXyzAxel[1], mXyzAxel[2], mAeAxel);
 
 	/* RMSE and standard deviation */
-	double stdDun;
-	double sumDun2 = 0;
-	double stdGeo;
-	double sumGeo2 = 0;
-	double stdStat;
-	double sumStat2 = 0;
-	double stdAxel;
-	double sumAxel2 = 0;
-
 	double trueAntennaXyz[3];
 	ae2xyz(TRUE_AZ, TRUE_EL, trueAntennaXyz);
-	double rmsDun;
-	double sumDun = 0;
-	double rmsGeo;
-	double sumGeo = 0;
-	double rmsStat;
-	double sumStat = 0;
-	double rmsAxel;
-	double sumAxel = 0;
 
 	double rmsAxelX, rmsAxelY, rmsAxelZ;
 	double sumAxelX = 0;
 	double sumAxelY = 0;
 	double sumAxelZ = 0;
-	//double sumAxelA = 0;
+
+	double stdAxelX, stdAxelY, stdAxelZ;
+	double sumAxelX2 = 0;
+	double sumAxelY2 = 0;
+	double sumAxelZ2 = 0;
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
-		sumDun += pow(spDist(*dunSolArray[i]->x, *dunSolArray[i]->y, *dunSolArray[i]->z, trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]), 2);
-		sumGeo += pow(spDist(*geoSolArray[i]->x, *geoSolArray[i]->y, *geoSolArray[i]->z, trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]), 2);
-		sumStat += pow(spDist(*statSolArray[i]->x, *statSolArray[i]->y, *statSolArray[i]->z, trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]), 2);
-		sumAxel += pow(spDist(*axelSolArray[i]->x, *axelSolArray[i]->y, *axelSolArray[i]->z, trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2]), 2);
-
 		sumAxelX += pow((*axelSolArray[i]->x - trueAntennaXyz[0]), 2);
 		sumAxelY += pow((*axelSolArray[i]->y - trueAntennaXyz[1]), 2);
 		sumAxelZ += pow((*axelSolArray[i]->z - trueAntennaXyz[2]), 2);
 
-		sumDun2 += pow(spDist(*dunSolArray[i]->x, *dunSolArray[i]->y, *dunSolArray[i]->z, mXyzDun[0], mXyzDun[1], mXyzDun[2]), 2);
-		sumGeo2 += pow(spDist(*geoSolArray[i]->x, *geoSolArray[i]->y, *geoSolArray[i]->z, mXyzGeo[0], mXyzGeo[1], mXyzGeo[2]), 2);
-		sumStat2 += pow(spDist(*statSolArray[i]->x, *statSolArray[i]->y, *statSolArray[i]->z, mXyzStat[0], mXyzStat[1], mXyzStat[2]), 2);
-		sumAxel2 += pow(spDist(*axelSolArray[i]->x, *axelSolArray[i]->y, *axelSolArray[i]->z, mXyzAxel[0], mXyzAxel[1], mXyzAxel[2]), 2);
+		sumAxelX2 += pow((*axelSolArray[i]->x - mXyzAxel[0]), 2);
+		sumAxelY2 += pow((*axelSolArray[i]->y - mXyzAxel[1]), 2);
+		sumAxelZ2 += pow((*axelSolArray[i]->z - mXyzAxel[2]), 2);
 	}
 
-	rmsDun = sqrt(sumDun / *epochArrayIndex);
-	rmsDun = rad2deg(rmsDun);
-	rmsGeo = sqrt(sumGeo / *epochArrayIndex);
-	rmsGeo = rad2deg(rmsGeo);
-	rmsStat = sqrt(sumStat / *epochArrayIndex);
-	rmsStat = rad2deg(rmsStat);
-	rmsAxel = sqrt(sumAxel / *epochArrayIndex);
-	rmsAxel = rad2deg(rmsAxel);
-
-	/* by component */
+	/* rmse by component */
 	rmsAxelX = sqrt(sumAxelX / *epochArrayIndex);
 	rmsAxelX = rad2deg(asin(rmsAxelX));
 	rmsAxelY = sqrt(sumAxelY / *epochArrayIndex);
@@ -708,32 +462,31 @@ int main(int argc, char **argv)
 	double rmsAxelA = sqrt(pow(rmsAxelX, 2) + pow(rmsAxelY, 2) + pow(rmsAxelZ, 2));
 	double rmsAxelAz = sqrt(pow(rmsAxelA, 2) - pow(rmsAxelZ, 2));
 
-	stdDun = sqrt(sumDun2 / *epochArrayIndex);
-	stdDun = rad2deg(stdDun);
-	stdGeo = sqrt(sumGeo2 / *epochArrayIndex);
-	stdGeo = rad2deg(stdGeo);
-	stdStat = sqrt(sumStat2 / *epochArrayIndex);
-	stdStat = rad2deg(stdStat);
-	stdAxel = sqrt(sumAxel2 / *epochArrayIndex);
-	stdAxel = rad2deg(stdAxel);
+	/* std by component */
+	stdAxelX = sqrt(sumAxelX2 / *epochArrayIndex);
+	stdAxelX = rad2deg(asin(stdAxelX));
+	stdAxelY = sqrt(sumAxelY2 / *epochArrayIndex);
+	stdAxelY = rad2deg(asin(stdAxelY));
+	stdAxelZ = sqrt(sumAxelZ2 / *epochArrayIndex);
+	stdAxelZ = rad2deg(asin(stdAxelZ));
+	double stdAxelA = sqrt(pow(stdAxelX, 2) + pow(stdAxelY, 2) + pow(stdAxelZ, 2));
+	double stdAxelAz = sqrt(pow(stdAxelA, 2) - pow(stdAxelZ, 2));
 
-	printf("----------\nStatistics\n----------\nNumber of epochs in total = %li\n", *epochArrayIndex);
-	printf("\nConvergence (x, y, z, az, el)\n");
+	printf("----------\nStatistics\n----------\nNumber of epochs\n%li\n", *epochArrayIndex);
+
 	if (TRUE_EL >= -90 && TRUE_EL <= 90 && TRUE_AZ <= 360 && TRUE_AZ >= 0) // if antenna truth is provided by the user)
 	{
-		printf("Antenna truth = %lf, %lf, %lf, %lf, %lf (by user input)\n", trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2], (double)TRUE_AZ, (double)TRUE_EL);
+		printf("\nAntenna truth by user input (E, N, U, Az, El)\n%.2f, %.2f, %.2f, %.2f°, %.2f°\n", trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2], (double)TRUE_AZ, (double)TRUE_EL);
 	}
-	printf("Duncan's = %lf, %lf, %lf, %lf, %lf\n", mXyzDun[0], mXyzDun[1], mXyzDun[2], mAeDun[0], mAeDun[1]);
-	printf("Geometry = %lf, %lf, %lf, %lf, %lf\n", mXyzGeo[0], mXyzGeo[1], mXyzGeo[2], mAeGeo[0], mAeGeo[1]);
-	printf("Geo Stat = %lf, %lf, %lf, %lf, %lf\n", mXyzStat[0], mXyzStat[1], mXyzStat[2], mAeStat[0], mAeStat[1]);
-	printf("Axelrad's = %lf, %lf, %lf, %lf, %lf\n", mXyzAxel[0], mXyzAxel[1], mXyzAxel[2], mAeAxel[0], mAeAxel[1]);
-	printf("\nStandard deviation\n");
-	printf("Duncan's = % lf deg\nGeometry = % lf deg\nGeo Stat = % lf deg\nAxelrad's = %lf deg\n", stdDun, stdGeo, stdStat, stdAxel);
+
+	printf("\nConvergence (E, N, U, Az, El)\n");
+	printf("%.2f, %.2f, %.2f, %.2f°, %.2f°\n", mXyzAxel[0], mXyzAxel[1], mXyzAxel[2], mAeAxel[0], mAeAxel[1]);
+
+	printf("\nStandard deviation\nE = %.2f°\nN = %.2f°\nU = %.2f°\nAz = %.2f°\nEl = %.2f°\n3D = %.2f°\n", stdAxelX, stdAxelY, stdAxelZ, stdAxelAz, stdAxelZ, stdAxelA);
+
 	if (TRUE_EL >= -90 && TRUE_EL <= 90 && TRUE_AZ <= 360 && TRUE_AZ >= 0) // if antenna truth is provided by the user)
 	{
-		printf("\nAccuracy (RMSE)\n");
-		printf("Duncan's = % lf deg\nGeometry = % lf deg\nGeo Stat = % lf deg\nAxelrad's = %lf deg\n", rmsDun, rmsGeo, rmsStat, rmsAxel);
-		printf("\nAccuracy (RMSE) by component\nx = % lf deg\ny = % lf deg\nz = % lf deg\naz = %lf deg\nel = %lf deg\n3D = %lf deg\n", rmsAxelX, rmsAxelY, rmsAxelZ, rmsAxelAz, rmsAxelZ, rmsAxelA);
+		printf("\nRMSE\nE = %.2f°\nN = %.2f°\nU = %.2f°\nAz = %.2f°\nEl = %.2f°\n3D = %.2f°\n", rmsAxelX, rmsAxelY, rmsAxelZ, rmsAxelAz, rmsAxelZ, rmsAxelA);
 	}
 
 	/* close output file */
@@ -768,39 +521,6 @@ int main(int argc, char **argv)
 	*/
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
-		free(dunSolArray[i]->x);
-		free(dunSolArray[i]->y);
-		free(dunSolArray[i]->z);
-		free(dunSolArray[i]->az);
-		free(dunSolArray[i]->el);
-		free(dunSolArray[i]);
-	}
-	free(dunSolArray);
-
-	for (long int i = 0; i < *epochArrayIndex; i++)
-	{
-		free(geoSolArray[i]->x);
-		free(geoSolArray[i]->y);
-		free(geoSolArray[i]->z);
-		free(geoSolArray[i]->az);
-		free(geoSolArray[i]->el);
-		free(geoSolArray[i]);
-	}
-	free(geoSolArray);
-
-	for (long int i = 0; i < *epochArrayIndex; i++)
-	{
-		free(statSolArray[i]->x);
-		free(statSolArray[i]->y);
-		free(statSolArray[i]->z);
-		free(statSolArray[i]->az);
-		free(statSolArray[i]->el);
-		free(statSolArray[i]);
-	}
-	free(statSolArray);
-
-	for (long int i = 0; i < *epochArrayIndex; i++)
-	{
 		free(axelSolArray[i]->x);
 		free(axelSolArray[i]->y);
 		free(axelSolArray[i]->z);
@@ -813,7 +533,7 @@ int main(int argc, char **argv)
 
 	clock_t endTime = clock();
 	double timeSpent = (double)(endTime - startTime) / CLOCKS_PER_SEC;
-	printf("\nProgram execution time: %lf seconds\n", timeSpent);
+	printf("\nProgram execution time: %.2f seconds\n", timeSpent);
 
 	/*
 		exit
