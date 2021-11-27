@@ -1,4 +1,4 @@
-<h1 style="text-align: center;">gnss-attitude</h1>
+# gnss-attitude
 ## About
 gnss-attitude is a GNSS-based single antenna attitude determination software implementing the SNR-based algorithm proposed initially by [Axelrad and Behre (1999)](https://ieeexplore.ieee.org/abstract/document/736346) and later improved by [Wang et al. (2005)](https://eprints.qut.edu.au/2938/). Acting as an extension for [RTKLIB](http://www.rtklib.com/), this software takes processing results from RTKLIB and outputs the determined antenna boresight vectors in local coordinates (ENU). 
 
