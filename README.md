@@ -10,7 +10,7 @@ Here is the summary of the designed AD algorithm:
 1. Before determining the attitude using observation data, a calibration data set is collected. Using the calibration data set for each constellation, a multiparameter nonlinear regression is used to obtain SNR adjustment parameters for each satellite group and the SNR mapping function.
 3. For a given epoch, the line-of-sight (LOS) vectors from satellite to receiver are calculated from satellite and receiver locations. The satellite and receiver locations are derived from the GNSS navigation and observation files. 
 4. SNR values from the observation file are adjusted according to the adjustment terms developed in Step 1.
-5. The off-boresight angles can be found by the SNR mapping function developed in Step 1 plus the adjusted SNR values from Step 3.
+5. The off-boresight angles can be found by the SNR mapping function developed in Step 1 and the adjusted SNR values from Step 3.
 6. The LOS vectors from Step 2 and off-boresight angles from Step 4 are put into a multiple linear regression to determine the antenna boresight vector.
 
 [^1]: https://ieeexplore.ieee.org/abstract/document/736346
