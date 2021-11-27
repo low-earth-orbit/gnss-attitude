@@ -1,7 +1,7 @@
-# gnss-ads
-gnss-ads is a GNSS-based single antenna attitude determination software implementing the SNR-based algorithm proposed initially by Axelrad and Behre (1999)[^1] and later improved by Wang et al. (2005)[^2]. Acting as an extension for RTKLIB[^3], this software takes processing results from RTKLIB and outputs the determined antenna boresight vectors in local coordinates (ENU). 
+# gnss-attitude
+gnss-attitude is a GNSS-based single antenna attitude determination software implementing the SNR-based algorithm proposed initially by Axelrad and Behre (1999)[^1] and later improved by Wang et al. (2005)[^2]. Acting as an extension for RTKLIB[^3], this software takes processing results from RTKLIB and outputs the determined antenna boresight vectors in local coordinates (ENU). 
 
-gnss-ads is being developed for future use in VIOLET, a nano-satellite by CubeSat NB[^4]. The author introduced a few innovations:
+gnss-attitude is being developed for future use in VIOLET, a nano-satellite by CubeSat NB[^4]. The author introduced a few innovations:
 1. The adjustment terms and the SNR mapping function are determined simultaneously, using a statistical model.
 2. All four globally operating navigation satellite systems (GPS, BeiDou, GLONASS and Galileo) are incorporated.
 3. Support for multiple frequencies.
