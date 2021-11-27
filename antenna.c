@@ -255,7 +255,7 @@ int main(int argc, char **argv)
 	/*
 		Axelrad's method (Axelrad & Behre, 1999) -- Compared to Duncan's method, this is the proper use of SNR in determining antenna boresight vector. It requires antenna gain mapping (the relationship between off-boresight angle and SNR for the antenna) and adjustment to measured SNR.
 	*/
-	Sol **axelSolArray = malloc(sizeof(Sol *) * *epochArrayIndex);
+	Sol **solArray = malloc(sizeof(Sol *) * *epochArrayIndex);
 
 	fprintf(fpw, "Epoch (GPST), # of Signal, X(E), Y(N), Z(U), Az(deg), El(deg)\n");
 
@@ -266,12 +266,12 @@ int main(int argc, char **argv)
 			See GNU Scientific Library Reference Manual for more: https://www.gnu.org/software/gsl/doc/html/lls.html
 		*/
 		int n = *(epochArray[i]->numSat); // number of observations in the epoch
-		Sol *axelSol = malloc(sizeof(Sol));
-		axelSol->x = calloc(1, sizeof(double));
-		axelSol->y = calloc(1, sizeof(double));
-		axelSol->z = calloc(1, sizeof(double));
-		axelSol->az = calloc(1, sizeof(double));
-		axelSol->el = calloc(1, sizeof(double));
+		Sol *sol = malloc(sizeof(Sol));
+		sol->x = calloc(1, sizeof(double));
+		sol->y = calloc(1, sizeof(double));
+		sol->z = calloc(1, sizeof(double));
+		sol->az = calloc(1, sizeof(double));
+		sol->el = calloc(1, sizeof(double));
 
 		/* set up size of matrices for least squares (LS) regression */
 		double chisq;
@@ -286,7 +286,7 @@ int main(int argc, char **argv)
 		for (int j = 0; j < n; j++)
 		{
 			/* calculate LOS vector from azimuth and elevation*/
-			double xyz[3];
+			double xyz[3]; // x is E, y is N, z is U
 			ae2xyz(*(*epochArray[i]).epochSatArray[j]->az, *(*epochArray[i]).epochSatArray[j]->el, xyz);
 
 			double cosA;
@@ -330,9 +330,9 @@ int main(int argc, char **argv)
 		gsl_multifit_linear_free(work);
 
 		/* save best fit */
-		*(axelSol->x) = C(0);
-		*(axelSol->y) = C(1);
-		*(axelSol->z) = C(2);
+		*(sol->x) = C(0);
+		*(sol->y) = C(1);
+		*(sol->z) = C(2);
 
 		/* least squares stats */
 		//printf("# covariance matrix:\n");
@@ -357,120 +357,120 @@ int main(int argc, char **argv)
 		gsl_matrix_free(cov);
 
 		/* normalize the resulting vector to get xyz solution*/
-		normalize(axelSol);
+		normalize(sol);
 
 		/* from xyz solution derive azimuth-elevation solution*/
-		xyz2aeSol(*(axelSol->x), *(axelSol->y), *(axelSol->z), axelSol);
+		xyz2aeSol(*(sol->x), *(sol->y), *(sol->z), sol);
 
 		/* apply convergence correction built by simulation */
 		if (CONVERGENCE_CORRECTION)
 		{
-			if (*(axelSol->el) > 40.181)
+			if (*(sol->el) > 40.181)
 			{
-				*(axelSol->el) += 0.0000022678 * pow(*(axelSol->el), 3) - 0.0005537871 * pow(*(axelSol->el), 2) + 0.0455341172 * *(axelSol->el) - 1.2636551736;
+				*(sol->el) += 0.0000022678 * pow(*(sol->el), 3) - 0.0005537871 * pow(*(sol->el), 2) + 0.0455341172 * *(sol->el) - 1.2636551736;
 			}
-			else if (*(axelSol->el) > 0.562466)
+			else if (*(sol->el) > 0.562466)
 			{
-				*(axelSol->el) += 0.0000029756 * pow(*(axelSol->el), 3) - 0.0002119836 * pow(*(axelSol->el), 2) + 0.0133919561 * *(axelSol->el) - 0.5684236546;
+				*(sol->el) += 0.0000029756 * pow(*(sol->el), 3) - 0.0002119836 * pow(*(sol->el), 2) + 0.0133919561 * *(sol->el) - 0.5684236546;
 			}
-			else if (*(axelSol->el) > -33.9139)
+			else if (*(sol->el) > -33.9139)
 			{
-				*(axelSol->el) += -0.0000374714 * pow(*(axelSol->el), 3) - 0.0058097797 * pow(*(axelSol->el), 2) + 0.0088882136 * *(axelSol->el) - 0.5690671978;
+				*(sol->el) += -0.0000374714 * pow(*(sol->el), 3) - 0.0058097797 * pow(*(sol->el), 2) + 0.0088882136 * *(sol->el) - 0.5690671978;
 			}
-			else if (*(axelSol->el) > -61.2864)
+			else if (*(sol->el) > -61.2864)
 			{
-				*(axelSol->el) += 0.0000074641 * pow(*(axelSol->el), 3) + 0.0074059911 * pow(*(axelSol->el), 2) + 0.7488207967 * *(axelSol->el) + 11.0845716711;
+				*(sol->el) += 0.0000074641 * pow(*(sol->el), 3) + 0.0074059911 * pow(*(sol->el), 2) + 0.7488207967 * *(sol->el) + 11.0845716711;
 			}
-			else if (*(axelSol->el) > -73.799)
+			else if (*(sol->el) > -73.799)
 			{
-				*(axelSol->el) += 0.0029469680 * pow(*(axelSol->el), 3) + 0.5621635563 * pow(*(axelSol->el), 2) + 35.6911758009 * *(axelSol->el) + 745.5426340882;
+				*(sol->el) += 0.0029469680 * pow(*(sol->el), 3) + 0.5621635563 * pow(*(sol->el), 2) + 35.6911758009 * *(sol->el) + 745.5426340882;
 			}
-			else if (*(axelSol->el) <= -73.799) // at this elevation angle, the result is not reliable anyway
+			else if (*(sol->el) <= -73.799) // at this elevation angle, the result is not reliable anyway
 			{
-				*(axelSol->el) += -0.0418102295 * pow(*(axelSol->el), 2) - 5.4402816535 * *(axelSol->el) - 185.1646192938;
+				*(sol->el) += -0.0418102295 * pow(*(sol->el), 2) - 5.4402816535 * *(sol->el) - 185.1646192938;
 			}
 
-			if (*(axelSol->el) > 90)
+			if (*(sol->el) > 90)
 			{
-				*(axelSol->el) = 90;
+				*(sol->el) = 90;
 			}
-			else if (*(axelSol->el) < -90)
+			else if (*(sol->el) < -90)
 			{
-				*(axelSol->el) = -90;
+				*(sol->el) = -90;
 			}
 			// recompute xyz
-			ae2xyzSol(*(axelSol->az), *(axelSol->el), axelSol);
+			ae2xyzSol(*(sol->az), *(sol->el), sol);
 		}
 
 		/* save result */
-		fprintf(fpw, "%s,%i,%lf,%lf,%lf,%lf,%lf\n", (*epochArray[i]).time, *(*epochArray[i]).numSat, *(axelSol->x), *(axelSol->y), *(axelSol->z), *(axelSol->az), *(axelSol->el));
+		fprintf(fpw, "%s,%i,%lf,%lf,%lf,%lf,%lf\n", (*epochArray[i]).time, *(*epochArray[i]).numSat, *(sol->x), *(sol->y), *(sol->z), *(sol->az), *(sol->el));
 
 		/* save to array */
-		axelSolArray[i] = axelSol;
+		solArray[i] = sol;
 	}
 
 	/*
 		Statistics
 	*/
 	/* convergence */
-	double mAxelX = 0, mAxelY = 0, mAxelZ = 0;
+	double mX = 0, mY = 0, mZ = 0;
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
-		mAxelX += *axelSolArray[i]->x;
-		mAxelY += *axelSolArray[i]->y;
-		mAxelZ += *axelSolArray[i]->z;
+		mX += *solArray[i]->x;
+		mY += *solArray[i]->y;
+		mZ += *solArray[i]->z;
 	}
 
-	double mXyzAxel[3] = {mAxelX, mAxelY, mAxelZ};
-	normalizeXyz(mXyzAxel);
-	double mAeAxel[2] = {0.0, 0.0};
-	xyz2ae(mXyzAxel[0], mXyzAxel[1], mXyzAxel[2], mAeAxel);
+	double mXyz[3] = {mX, mY, mZ};
+	normalizeXyz(mXyz);
+	double mAe[2] = {0.0, 0.0};
+	xyz2ae(mXyz[0], mXyz[1], mXyz[2], mAe);
 
 	/* RMSE and standard deviation */
 	double trueAntennaXyz[3];
 	ae2xyz(TRUE_AZ, TRUE_EL, trueAntennaXyz);
 
-	double rmsAxelX, rmsAxelY, rmsAxelZ;
-	double sumAxelX = 0;
-	double sumAxelY = 0;
-	double sumAxelZ = 0;
+	double rmsX, rmsY, rmsZ;
+	double sumX = 0;
+	double sumY = 0;
+	double sumZ = 0;
 
-	double stdAxelX, stdAxelY, stdAxelZ;
-	double sumAxelX2 = 0;
-	double sumAxelY2 = 0;
-	double sumAxelZ2 = 0;
+	double stdX, stdY, stdZ;
+	double sumX2 = 0;
+	double sumY2 = 0;
+	double sumZ2 = 0;
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
-		sumAxelX += pow((*axelSolArray[i]->x - trueAntennaXyz[0]), 2);
-		sumAxelY += pow((*axelSolArray[i]->y - trueAntennaXyz[1]), 2);
-		sumAxelZ += pow((*axelSolArray[i]->z - trueAntennaXyz[2]), 2);
+		sumX += pow((*solArray[i]->x - trueAntennaXyz[0]), 2);
+		sumY += pow((*solArray[i]->y - trueAntennaXyz[1]), 2);
+		sumZ += pow((*solArray[i]->z - trueAntennaXyz[2]), 2);
 
-		sumAxelX2 += pow((*axelSolArray[i]->x - mXyzAxel[0]), 2);
-		sumAxelY2 += pow((*axelSolArray[i]->y - mXyzAxel[1]), 2);
-		sumAxelZ2 += pow((*axelSolArray[i]->z - mXyzAxel[2]), 2);
+		sumX2 += pow((*solArray[i]->x - mXyz[0]), 2);
+		sumY2 += pow((*solArray[i]->y - mXyz[1]), 2);
+		sumZ2 += pow((*solArray[i]->z - mXyz[2]), 2);
 	}
 
 	/* rmse by component */
-	rmsAxelX = sqrt(sumAxelX / *epochArrayIndex);
-	rmsAxelX = rad2deg(asin(rmsAxelX));
-	rmsAxelY = sqrt(sumAxelY / *epochArrayIndex);
-	rmsAxelY = rad2deg(asin(rmsAxelY));
-	rmsAxelZ = sqrt(sumAxelZ / *epochArrayIndex);
-	rmsAxelZ = rad2deg(asin(rmsAxelZ));
-	double rmsAxelA = sqrt(pow(rmsAxelX, 2) + pow(rmsAxelY, 2) + pow(rmsAxelZ, 2));
-	double rmsAxelAz = sqrt(pow(rmsAxelA, 2) - pow(rmsAxelZ, 2));
+	rmsX = sqrt(sumX / *epochArrayIndex);
+	rmsX = rad2deg(asin(rmsX));
+	rmsY = sqrt(sumY / *epochArrayIndex);
+	rmsY = rad2deg(asin(rmsY));
+	rmsZ = sqrt(sumZ / *epochArrayIndex);
+	rmsZ = rad2deg(asin(rmsZ));
+	double rmsA = sqrt(pow(rmsX, 2) + pow(rmsY, 2) + pow(rmsZ, 2));
+	double rmsAz = sqrt(pow(rmsA, 2) - pow(rmsZ, 2));
 
 	/* std by component */
-	stdAxelX = sqrt(sumAxelX2 / *epochArrayIndex);
-	stdAxelX = rad2deg(asin(stdAxelX));
-	stdAxelY = sqrt(sumAxelY2 / *epochArrayIndex);
-	stdAxelY = rad2deg(asin(stdAxelY));
-	stdAxelZ = sqrt(sumAxelZ2 / *epochArrayIndex);
-	stdAxelZ = rad2deg(asin(stdAxelZ));
-	double stdAxelA = sqrt(pow(stdAxelX, 2) + pow(stdAxelY, 2) + pow(stdAxelZ, 2));
-	double stdAxelAz = sqrt(pow(stdAxelA, 2) - pow(stdAxelZ, 2));
+	stdX = sqrt(sumX2 / *epochArrayIndex);
+	stdX = rad2deg(asin(stdX));
+	stdY = sqrt(sumY2 / *epochArrayIndex);
+	stdY = rad2deg(asin(stdY));
+	stdZ = sqrt(sumZ2 / *epochArrayIndex);
+	stdZ = rad2deg(asin(stdZ));
+	double stdA = sqrt(pow(stdX, 2) + pow(stdY, 2) + pow(stdZ, 2));
+	double stdAz = sqrt(pow(stdA, 2) - pow(stdZ, 2));
 
 	printf("----------\nStatistics\n----------\nNumber of epochs\n%li\n", *epochArrayIndex);
 
@@ -480,13 +480,13 @@ int main(int argc, char **argv)
 	}
 
 	printf("\nConvergence (E, N, U, Az, El)\n");
-	printf("%.2f, %.2f, %.2f, %.2f°, %.2f°\n", mXyzAxel[0], mXyzAxel[1], mXyzAxel[2], mAeAxel[0], mAeAxel[1]);
+	printf("%.2f, %.2f, %.2f, %.2f°, %.2f°\n", mXyz[0], mXyz[1], mXyz[2], mAe[0], mAe[1]);
 
-	printf("\nStandard deviation\nE = %.2f°\nN = %.2f°\nU = %.2f°\nAz = %.2f°\nEl = %.2f°\n3D = %.2f°\n", stdAxelX, stdAxelY, stdAxelZ, stdAxelAz, stdAxelZ, stdAxelA);
+	printf("\nStandard deviation\nE = %.2f°\nN = %.2f°\nU = %.2f°\nAz = %.2f°\nEl = %.2f°\n3D = %.2f°\n", stdX, stdY, stdZ, stdAz, stdZ, stdA);
 
 	if (TRUE_EL >= -90 && TRUE_EL <= 90 && TRUE_AZ <= 360 && TRUE_AZ >= 0) // if antenna truth is provided by the user)
 	{
-		printf("\nRMSE\nE = %.2f°\nN = %.2f°\nU = %.2f°\nAz = %.2f°\nEl = %.2f°\n3D = %.2f°\n", rmsAxelX, rmsAxelY, rmsAxelZ, rmsAxelAz, rmsAxelZ, rmsAxelA);
+		printf("\nRMSE\nE = %.2f°\nN = %.2f°\nU = %.2f°\nAz = %.2f°\nEl = %.2f°\n3D = %.2f°\n", rmsX, rmsY, rmsZ, rmsAz, rmsZ, rmsA);
 	}
 
 	/* close output file */
@@ -521,14 +521,14 @@ int main(int argc, char **argv)
 	*/
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
-		free(axelSolArray[i]->x);
-		free(axelSolArray[i]->y);
-		free(axelSolArray[i]->z);
-		free(axelSolArray[i]->az);
-		free(axelSolArray[i]->el);
-		free(axelSolArray[i]);
+		free(solArray[i]->x);
+		free(solArray[i]->y);
+		free(solArray[i]->z);
+		free(solArray[i]->az);
+		free(solArray[i]->el);
+		free(solArray[i]);
 	}
-	free(axelSolArray);
+	free(solArray);
 	free(epochArrayIndex);
 
 	clock_t endTime = clock();
