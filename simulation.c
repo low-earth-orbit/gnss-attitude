@@ -28,7 +28,7 @@ typedef struct SimuSat
 {
 	double x;
 	double y;
-	double z; // x (E), y(N), z(U) in local coordinates
+	double z; // x(E), y(N), z(U) in local coordinates
 	double az;
 	double el;
 	double snr;
