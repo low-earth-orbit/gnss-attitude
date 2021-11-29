@@ -18,7 +18,7 @@
 #define NUM_SAT_SPHERE 105 // number of GNSS satellites globally available
 #define SNR_A 15.0		   // mapping function SNR = A cos(a) + c
 #define SNR_C 35.0
-#define SNR_STD 1.25 // when SNR_STD ~ 1.25, Axelrad's RMSE ~ 1.62 deg
+#define SNR_STD 1.25 // when SNR_STD ~ 1.25, UNB3 double freq RMS ~ 1.62 deg
 
 /* file and array sizes (normally no need to change) */
 #define MAX_NUM_EPOCH 86400		 // supports up to 24h data @ 1hz rate, change if your file has number of epochs more than this
