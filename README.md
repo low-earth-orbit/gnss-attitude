@@ -45,15 +45,15 @@ Using a general SNR mapping function, the system delivers an accuracy of about 5
 
 2. Edit `config.c`
 
-3. Compile & Run
+3. Compile and run
 
-   Option A: Custom input file
+   Option A: custom input file & multiple frequencies
 
         make antenna
         ./antenna [input_1] [input_2] [input_3]
 
-   Option B: Defualt input file (single-frequency)
-
+   Option B: default input file path & single frequency
+ 
         make run
 
 ## License
