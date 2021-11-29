@@ -5,3 +5,4 @@ simulation
 *.o
 *.txt
 snr_cosine_fit.c
+snrPatch.c
