@@ -8,13 +8,13 @@
 
 /* GNSS satellite groups */
 /*
-char *IIRLegacy[5] = {"G13", "G20", "G28", "G16", "G21"};
+char *IIRLegacy[5] = {"G13", "G16", "G20", "G21", "G28"};
 char *IIRImproved[3] = {"G22", "G19", "G02"};
-char *IIRM[7] = {"G17", "G31", "G12", "G15", "G29", "G07", "G05"};
+char *IIRM[7] = {"G05", "G07", "G12", "G15", "G17", "G29", "G31"};
 char *III[5] = {"G04", "G11", "G14", "G18", "G23"};
 */
 /* GPS "L1" */
-char *gps1[4] = {"G13", "G20", "G16", "G21"};
+char *gps1[4] = {"G13", "G16", "G20", "G21"};
 char *gps2[2] = {"G10", "G32"};
 
 /* GPS "L5" */
@@ -142,6 +142,10 @@ double getCosA(char *prn, double *snr)
 	double a, b;
 	if (prn[0] == 'G') // if GPS
 	{
+		/* low-cost patch antenna */
+		//a = -0.0010206864254944;
+		//b = 139.503127183396;
+		/* UNB3 */
 		a = -0.00152944692727729; // coefficient A in SNR mapping function SNR = A a^2 + b
 		b = 138.157302200121;	  // constant b in SNR mapping function
 	}
