@@ -58,18 +58,18 @@ void adjSnr(char *prn, double *el, double *snr)
 		if (isStrInArray(prn, gps1, 4))
 		{
 			/* power adjustment */
-			*snr -= 0.197857694272294;
+			*snr -= 0.24852350057561;
 			/* off-nadir adjustment */
-			*snr += (1 / 413.926109730221) * pow((*el - 38.1146746000328), 2);
+			*snr += (1 / 641.212390401401) * pow((*el - 35.658512773265), 2);
 		}
 		else if (isStrInArray(prn, gps2, 2))
 		{
-			*snr -= 1.78065087076735;
-			*snr += (1 / 1080.8849341692) * pow((*el - 50.5096233934499), 2);
+			*snr -= 2.79209176750643;
+			*snr += (1 / 21773.5082364001) * pow((*el - 194.183097860413), 2);
 		}
 		else
 		{
-			*snr += (1 / 766.360450955615) * pow((*el - 40.0844218330287), 2);
+			*snr += (1 / 2580.72026229872) * pow((*el - 34.5483935101112), 2);
 		}
 	}
 	else if (prn[0] == 'R') // if GLO
@@ -141,33 +141,37 @@ void adjSnr(char *prn, double *el, double *snr)
 */
 double getCosA(char *prn, double *snr)
 {
-	double a, b;
+	double a, b, c;
 	if (prn[0] == 'G') // if GPS
 	{
-		a = -0.00152944692727729; // coefficient A in SNR mapping function SNR = A a^2 + b
-		b = 138.157302200121;	  // constant b in SNR mapping function
+		a = -0.0000582954475421757; // coefficient A in SNR mapping function SNR = A a^2 + b
+		b = 2.73344499843439;
+		c = 135.992224960431; // constant b in SNR mapping function
 	}
 	else if (prn[0] == 'R') // if GLO
 	{
 		a = -0.00152704703004618;
-		b = 139.547595133865;
+		b = 2;
+		c = 139.547595133865;
 	}
 	else if (prn[0] == 'C') // if BDS
 	{
 		a = -0.00158688882127597;
-		b = 138.366163043981;
+		b = 2;
+		c = 138.366163043981;
 	}
 	else if (prn[0] == 'E') // if GAL
 	{
 		a = -0.00159161009195648;
-		b = 140.498788381318;
+		b = 2;
+		c = 140.498788381318;
 	}
 	else
 	{
 		fprintf(stderr, "PRN not recognized; check your input file.\n");
 	}
 
-	double alphaSq = (*snr - b) / a;
+	double alphaSq = (*snr - c) / a;
 	double alpha;
 	double cosA;
 
@@ -177,7 +181,7 @@ double getCosA(char *prn, double *snr)
 	}
 	else
 	{
-		alpha = sqrt(alphaSq);
+		alpha = pow(alphaSq, (1 / b));
 	}
 
 	if (alpha > 90)
