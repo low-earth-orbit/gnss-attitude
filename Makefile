@@ -2,10 +2,10 @@ GCC = gcc
 CFLAGS = -g -Wall 
 EXTRAFLAGS =  -lgsl -lgslcblas -lm
 
-antenna: util.o struct.o snr.o antenna.o
+antenna: clean util.o struct.o snr.o antenna.o config.h
 			$(GCC) $(CFLAGS) util.o struct.o snr.o antenna.o -o antenna $(EXTRAFLAGS)
 
-simulation: util.o struct.o simulation.o
+simulation: clean util.o struct.o simulation.o
 			$(GCC) $(CFLAGS) util.o struct.o simulation.o -o simulation $(EXTRAFLAGS)
 
 simulation.o: simulation.c
@@ -23,14 +23,11 @@ util.o: util.c
 struct.o: struct.c
 			$(GCC) $(CFLAGS) -c struct.c $(EXTRAFLAGS)
 
-run: antenna
-			make antenna
+run_antenna: clean antenna
 			./antenna
 
-run_simulation: simulation
-			make simulation
+run_simulation: clean simulation antenna
 			./simulation
-			make antenna
 			./antenna
 
 clean:
