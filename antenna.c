@@ -60,7 +60,7 @@ int main(int argc, char **argv)
 	}
 	else
 	{
-		fprintf(stderr, "Too many arguments. Usage:\n./antenna input.txt (input2.txt)\n");
+		fprintf(stderr, "Too many arguments. Usage:\n./antenna [input_1.txt] [input_2.txt]\n");
 		return (-1);
 	}
 
@@ -79,63 +79,65 @@ int main(int argc, char **argv)
 	long int satArrayIndex = 0;
 	char *line = malloc(sizeof(char) * (MAX_NUM_CHAR_LINE));
 
-	/* L1 input file */
-	fgets(line, MAX_NUM_CHAR_LINE, fp); // Skip header
-	while (fgets(line, MAX_NUM_CHAR_LINE, fp) != NULL)
+	if (argc == 1) // default input file
 	{
-		char *time1 = (char *)malloc(sizeof(char) * (NUM_CHAR_DATE + 1));
-		char *time2 = (char *)malloc(sizeof(char) * (NUM_CHAR_TIME + 1));
-		char *prn = (char *)malloc(sizeof(char) * (NUM_CHAR_SAT + 1));
-		double *az = (double *)malloc(sizeof(double));
-		double *el = (double *)malloc(sizeof(double));
-		double *snr = (double *)malloc(sizeof(double));
-
-		sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, prn, az, el, snr);
-		char *time = concat(time1, time2);
-
-		if (!SIMULATION)
-		{
-			adjSnr(prn, el, snr);
-		}
-		double *snr2 = (double *)malloc(sizeof(double));
-		*snr2 = -1.0;
-
-		satArray[satArrayIndex] = createSat(time, prn, az, el, snr, snr2); // Add each sat to sat array
-		satArrayIndex++;
-
-		free(time1);
-		free(time2); // free memory because time1 and time2 are concatenated to a new char* time
+		argc++;
 	}
-
-	/* L2 input file */
-	if (argc == 3)
+	for (int i = 1; i < argc; i++)
 	{
-		fgets(line, MAX_NUM_CHAR_LINE, fp2); // Skip header
-		while (fgets(line, MAX_NUM_CHAR_LINE, fp2) != NULL)
+		FILE *fpThis;
+		if (i == 1) // first frequency
+		{
+			fpThis = fp;
+		}
+		else if (i == 2) // second frequency
+		{
+			fpThis = fp2;
+		}
+		fgets(line, MAX_NUM_CHAR_LINE, fpThis); // Skip header
+		while (fgets(line, MAX_NUM_CHAR_LINE, fpThis) != NULL)
 		{
 			char *time1 = (char *)malloc(sizeof(char) * (NUM_CHAR_DATE + 1));
 			char *time2 = (char *)malloc(sizeof(char) * (NUM_CHAR_TIME + 1));
 			char *prn = (char *)malloc(sizeof(char) * (NUM_CHAR_SAT + 1));
 			double *az = (double *)malloc(sizeof(double));
 			double *el = (double *)malloc(sizeof(double));
-
-			double *snr2 = (double *)malloc(sizeof(double));
-
-			sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, prn, az, el, snr2);
-			char *time = concat(time1, time2);
-			/* adjust SNR here */
-			if (!SIMULATION)
+			double *snrThis = (double *)malloc(sizeof(double));
+			sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, prn, az, el, snrThis);
+			if (*az < 0 || *az > 360 || *el > 90 || *snrThis <= 0) // sanity check
 			{
-				//printf("SNR (meas) = %.2f\t", *snr2);
-				adjSnr2(prn, el, snr2);
-				//printf("SNR (adj) = %.2f\n", *snr2);
+				printf("Skipped invalid data found in Az, El or SNR.\n");
+				free(prn);
+				free(az);
+				free(el);
+				free(snrThis);
 			}
-			double *snr = (double *)malloc(sizeof(double));
-			*snr = -1.0;
-			//printf("snr = %.2f\n", *snr);
-			satArray[satArrayIndex] = createSat(time, prn, az, el, snr, snr2); // Add each sat to sat array
-			satArrayIndex++;
-
+			else
+			{
+				char *time = concat(time1, time2);
+				if (!SIMULATION)
+				{
+					if (i == 1)
+					{
+						adjSnr(prn, el, snrThis);
+					}
+					else if (i == 2)
+					{
+						adjSnr2(prn, el, snrThis);
+					}
+				}
+				double *snrOther = (double *)malloc(sizeof(double));
+				*snrOther = -1.0;
+				if (i == 1)
+				{
+					satArray[satArrayIndex] = createSat(time, prn, az, el, snrThis, snrOther);
+				}
+				else if (i == 2)
+				{
+					satArray[satArrayIndex] = createSat(time, prn, az, el, snrOther, snrThis);
+				}
+				satArrayIndex++;
+			}
 			free(time1);
 			free(time2); // free memory because time1 and time2 are concatenated to a new char* time
 		}
@@ -257,7 +259,7 @@ int main(int argc, char **argv)
 	*/
 	Sol **solArray = malloc(sizeof(Sol *) * *epochArrayIndex);
 
-	fprintf(fpw, "Epoch (GPST), # of Signal, X(E), Y(N), Z(U), Az(deg), El(deg)\n");
+	fprintf(fpw, "Epoch (GPS Time), # of Signals, E, N, U, Az (deg), El (deg)\n");
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
@@ -308,7 +310,7 @@ int main(int argc, char **argv)
 				{
 					cosA = getCosA2((epochArray[i])->epochSatArray[j]->prn, (*epochArray[i]).epochSatArray[j]->snr2);
 				}
-				else
+				else if (*(*epochArray[i]).epochSatArray[j]->snr2 < 0)
 				{
 					cosA = getCosA((epochArray[i])->epochSatArray[j]->prn, (*epochArray[i]).epochSatArray[j]->snr);
 				}
@@ -342,11 +344,9 @@ int main(int argc, char **argv)
 		//printf("# chisq = %g\n", chisq);
 		/*
 		double redChiSq = chisq / (n - 3); // reduced chisq = chisq / (# of signals - 3)
-		double lsStdX = rad2deg(asin(sqrt(redChiSq * COV(0, 0))));
-		double lsStdY = rad2deg(asin(sqrt(redChiSq * COV(1, 1))));
-		double lsStdZ = rad2deg(asin(sqrt(redChiSq * COV(2, 2))));
-		double lsStdA = rad2deg(asin(sqrt(redChiSq * COV(0, 0) + redChiSq * COV(1, 1) + redChiSq * COV(2, 2))));
-		printf("standard deviation of x, y, z from least squares\nx = %.2f°, y = %.2f°, z = %.2f°, 3D = %.2f°\n", lsStdX, lsStdY, lsStdZ, lsStdA);
+		double lsStdX = sqrt(redChiSq * COV(0, 0))));
+		double lsStdY = sqrt(redChiSq * COV(1, 1))));
+		double lsStdZ = sqrt(redChiSq * COV(2, 2))));
 		*/
 
 		/* free matrices for LS */
@@ -413,7 +413,7 @@ int main(int argc, char **argv)
 		Statistics
 	*/
 	/* convergence */
-	double mX = 0, mY = 0, mZ = 0;
+	double mX = 0.0, mY = 0.0, mZ = 0.0;
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
@@ -421,10 +421,12 @@ int main(int argc, char **argv)
 		mY += *solArray[i]->y;
 		mZ += *solArray[i]->z;
 	}
-
+	mX /= *epochArrayIndex;
+	mY /= *epochArrayIndex;
+	mZ /= *epochArrayIndex;
 	double mXyz[3] = {mX, mY, mZ};
 	normalizeXyz(mXyz);
-	double mAe[2] = {0.0, 0.0};
+	double mAe[2] = {-1.0, -1.0};
 	xyz2ae(mXyz[0], mXyz[1], mXyz[2], mAe);
 
 	/* RMSE and standard deviation */
@@ -452,25 +454,17 @@ int main(int argc, char **argv)
 		sumZ2 += pow((*solArray[i]->z - mXyz[2]), 2);
 	}
 
-	/* rmse by component */
+	/* RMSE by component */
 	rmsX = sqrt(sumX / *epochArrayIndex);
-	rmsX = rad2deg(asin(rmsX));
 	rmsY = sqrt(sumY / *epochArrayIndex);
-	rmsY = rad2deg(asin(rmsY));
 	rmsZ = sqrt(sumZ / *epochArrayIndex);
-	rmsZ = rad2deg(asin(rmsZ));
-	double rmsA = sqrt(pow(rmsX, 2) + pow(rmsY, 2) + pow(rmsZ, 2));
-	double rmsAz = sqrt(pow(rmsA, 2) - pow(rmsZ, 2));
+	double rmsA = rad2deg(asin(sqrt(pow(rmsX, 2) + pow(rmsY, 2) + pow(rmsZ, 2))));
 
-	/* std by component */
-	stdX = sqrt(sumX2 / *epochArrayIndex);
-	stdX = rad2deg(asin(stdX));
-	stdY = sqrt(sumY2 / *epochArrayIndex);
-	stdY = rad2deg(asin(stdY));
-	stdZ = sqrt(sumZ2 / *epochArrayIndex);
-	stdZ = rad2deg(asin(stdZ));
-	double stdA = sqrt(pow(stdX, 2) + pow(stdY, 2) + pow(stdZ, 2));
-	double stdAz = sqrt(pow(stdA, 2) - pow(stdZ, 2));
+	/* STD by component */
+	stdX = sqrt(sumX2 / (*epochArrayIndex - 1)); // minus 1 since using sample mean
+	stdY = sqrt(sumY2 / (*epochArrayIndex - 1));
+	stdZ = sqrt(sumZ2 / (*epochArrayIndex - 1));
+	double stdA = rad2deg(asin(sqrt(pow(stdX, 2) + pow(stdY, 2) + pow(stdZ, 2))));
 
 	printf("----------\nStatistics\n----------\nNumber of epochs\n%li\n", *epochArrayIndex);
 
@@ -482,11 +476,11 @@ int main(int argc, char **argv)
 	printf("\nConvergence (E, N, U, Az, El)\n");
 	printf("%.2f, %.2f, %.2f, %.2f°, %.2f°\n", mXyz[0], mXyz[1], mXyz[2], mAe[0], mAe[1]);
 
-	printf("\nStandard deviation\nE = %.2f°\nN = %.2f°\nU = %.2f°\nAz = %.2f°\nEl = %.2f°\n3D = %.2f°\n", stdX, stdY, stdZ, stdAz, stdZ, stdA);
+	printf("\nStandard deviation\nE = %.4f\nN = %.4f\nU = %.4f\n3D = %.2f°\n", stdX, stdY, stdZ, stdA);
 
 	if (TRUE_EL >= -90 && TRUE_EL <= 90 && TRUE_AZ <= 360 && TRUE_AZ >= 0) // if antenna truth is provided by the user)
 	{
-		printf("\nRMSE\nE = %.2f°\nN = %.2f°\nU = %.2f°\nAz = %.2f°\nEl = %.2f°\n3D = %.2f°\n", rmsX, rmsY, rmsZ, rmsAz, rmsZ, rmsA);
+		printf("\nRoot-mean-square deviation\nE = %.4f\nN = %.4f\nU = %.4f\n3D = %.2f°\n", rmsX, rmsY, rmsZ, rmsA);
 	}
 
 	/* close output file */
