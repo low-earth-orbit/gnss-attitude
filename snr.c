@@ -6,39 +6,41 @@
 #include "util.h"
 #include "struct.h"
 
-/* GNSS satellite groups */
-/*
+/* THIS FILE IS FOR UNB3 STATION */
+
+/* GNSS satellite groups
 char *IIRLegacy[5] = {"G13", "G16", "G20", "G21", "G28"};
 char *IIRImproved[3] = {"G22", "G19", "G02"};
 char *IIRM[7] = {"G05", "G07", "G12", "G15", "G17", "G29", "G31"};
 char *III[5] = {"G04", "G11", "G14", "G18", "G23"};
 */
-/* GPS "L1" */
+
+/* GPS SIC */
 char *gps1[4] = {"G13", "G16", "G20", "G21"};
 char *gps2[2] = {"G10", "G32"};
 
-/* GPS "L5" */
+/* GPS S5X */
 char *l5gps1[7] = {"G05", "G07", "G12", "G15", "G17", "G29", "G31"};
 
-/* GLONASS "L1" */
+/* GLONASS SIC */
 char *glo1[5] = {"R19", "R22", "R06", "R13", "R20"};
 char *glo2[1] = {"R16"};
 char *glo3[1] = {"R01"};
 char *glo4[3] = {"R18", "R10", "R08"};
 
-/* GLONASS "L2" */
+/* GLONASS S2P */
 char *l2glo1[2] = {"R01", "R13"};
 char *l2glo2[2] = {"R16", "R22"};
 char *l2glo3[1] = {"R19"};
 
-/* BeiDou */
+/* BeiDou S1X & S5X*/
 char *bdsIGSO[3] = {"C38", "C39", "C40"};
 
-/* Galileo "L1" */
+/* Galileo S1X */
 char *gal1[1] = {"E18"};
 char *gal2[3] = {"E11", "E12", "E19"};
 
-/* Galileo "L5" */
+/* Galileo S5X */
 char *l5gal1[2] = {"E11", "E19"};
 char *l5gal2[2] = {"E14", "E18"};
 char *l5gal3[1] = {"E12"};
@@ -110,7 +112,7 @@ void adjSnr(char *prn, double *el, double *snr)
 			*snr += 20.0 * log10(sqrt(pow((21500 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
 		}
 	}
-	else if (prn[0] == 'E') // if Galileo
+	else if (prn[0] == 'E') // if GAL
 	{
 		/* path loss adjustment */
 		*snr += 20.0 * log10(sqrt(pow((23222 + 6370), 2) - pow(6370, 2) * cos(pow(deg2rad(*el), 2)) - 6370 * sin(deg2rad(*el))));
@@ -142,10 +144,6 @@ double getCosA(char *prn, double *snr)
 	double a, b;
 	if (prn[0] == 'G') // if GPS
 	{
-		/* low-cost patch antenna */
-		//a = -0.0010206864254944;
-		//b = 139.503127183396;
-		/* UNB3 */
 		a = -0.00152944692727729; // coefficient A in SNR mapping function SNR = A a^2 + b
 		b = 138.157302200121;	  // constant b in SNR mapping function
 	}
@@ -159,7 +157,7 @@ double getCosA(char *prn, double *snr)
 		a = -0.00158688882127597;
 		b = 138.366163043981;
 	}
-	else if (prn[0] == 'E') // if Galileo
+	else if (prn[0] == 'E') // if GAL
 	{
 		a = -0.00159161009195648;
 		b = 140.498788381318;
