@@ -1,10 +1,7 @@
 
 .vscode/settings.json
 antenna
-output.txt
-input.txt
 simulation
-input_test_set_all.txt
-input_test_set_gps.txt
+*.o
 *.txt
 snr_cosine_fit.c
