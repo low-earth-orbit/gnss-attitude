@@ -142,7 +142,7 @@ int main(void)
 	int numVisPt;
 	double snrAdd;
 
-	fprintf(fpw, "SIMULATED INPUT FILE \"SIMUEPOCH#\" \"TIME\"Epoch# \"SAT\" AZ EL SNR SAT#\n"); // print header
+	fprintf(fpw, "SIMULATED INPUT FILE\n"); // print header
 
 	for (int i = 0; i < NUM_EPOCH; i++)
 	{ // one simulation per loop
