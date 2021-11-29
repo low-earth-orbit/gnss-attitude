@@ -54,7 +54,7 @@ Using a general SNR mapping function, the system delivers an accuracy of about 5
 
    Option B: Defualt input file (single-frequency)
 
-        make run_antenna
+        make run
 
 ## License
 gnss-attitude is licensed under the GNU General Public License v3.0. See `LICENSE.txt` for more information.
