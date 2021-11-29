@@ -1,13 +1,13 @@
 # gnss-attitude
 ## Introduction
-gnss-attitude is a GNSS-based single antenna attitude determination software implementing the SNR-based algorithm first proposed by [Axelrad and Behre (1999)](https://ieeexplore.ieee.org/abstract/document/736346). As part of my undergraduate capstone design project, gnss-attitude is being developed for future use in VIOLET, a nanosatellite by [CubeSat NB](https://www.unb.ca/initiatives/cubesat/), to support its camera function. Acting as an extension for [RTKLIB](http://www.rtklib.com/), this software accepts processing results from RTKLIB and outputs the determined antenna boresight vectors in local coordinates (ENU). It can be used for both spacecrafts within GNSS space service range and ground vehicles. **This software is under initial development. Anything is subject to substantial change and considered unstable.**
+gnss-attitude is a GNSS-based single antenna attitude determination software implementing the SNR-based algorithm first proposed by [Axelrad and Behre (1999)](https://doi.org/10.1109/5.736346). As part of my undergraduate capstone design project, gnss-attitude is being developed for future use in VIOLET, a nanosatellite by [CubeSat NB](https://www.unb.ca/initiatives/cubesat/), to support its camera function. Acting as an extension for [RTKLIB](http://www.rtklib.com/), this software accepts processing results from RTKLIB and outputs the determined antenna boresight vectors in local coordinates (ENU). It can be used for both space and ground vehicles.
 
-The missing parts are the calibration for the specific antenna-receiver pair you're using and some treatments according to the orbital altitude; for these, you have to do them yourself. The complete methodologies will be made publicly available in a technical report, expected April 2022.
+In single-antenna GNSS/INS fusion, GNSS usually provides position and time, not attitude; and relative attitude is provided by IMU. This program enables absolute attitude by GNSS directly. With several new techniques employed, preliminary results show that the accuracy is a few degrees RMS, in contrast to 15° RMS reported by [Wang et al. (2005)](https://doi.org/10.2514/6.2005-5993) and within 10° degrees from a combination of two opposite-pointing antennas reported by [Eagleson et al. (2018)](https://digitalcommons.usu.edu/smallsat/2018/all2018/424/).
 
-The author introduced a few innovations:
-1. Statistical model for one-step determination of the adjustment terms and the SNR mapping function
-2. Use of all 4 globally operating navigation satellite systems: GPS, BeiDou, GLONASS and Galileo
-3. Support for multiple frequencies
+For potential testers: 
+1. This software is under initial development. Anything is subject to substantial change and considered unstable. Initial development release is expected Feburary 2022.
+2. The missing part is the calibration for the specific antenna-receiver pair you're using. For this, you have to do it yourself. 
+3. The complete methodologies will be made publicly available in a technical report, expected April 2022.
 
 ## Algorithm
 1. Before determining the attitude using observation data, a calibration data set is collected. A multiparameter nonlinear regression obtains SNR adjustment parameters for each satellite group and the SNR mapping function.
@@ -22,9 +22,11 @@ Using a general SNR mapping function, the system delivers an accuracy of about 5
 ## Limitations
 1. Accuracy is subject to the number of signals received and satellite geometry, particularly when the antenna points down, in the woods, outside of GNSS service volume, etc.
 
-2. The single antenna algorithm as implemented here can only determine the boresight vector. Rotation around the boresight axis is undetectable.
+2. Determines the boresight vector only. Rotation around the boresight axis is undetectable.
 
-3. Would not work with antennas not following the typical gain pattern of a GNSS antenna, such as chip antenna.
+3. Does not work with antennas not following the typical gain pattern of a GNSS antenna, such as chip antenna.
+
+4. Requires one-time calibration.
 
 ## Prerequisites
 1. Linux machine (update package list)
@@ -43,9 +45,11 @@ Using a general SNR mapping function, the system delivers an accuracy of about 5
 ## Usage
 1. Save AZ/EL/SNR/MP from RTKLIB as `input.txt`
 
-2. Edit `config.c`
+2. Edit `snr.c` with parameters obtained from calibration
 
-3. Compile and run
+3. Edit `config.c`
+
+4. Compile and run
 
    Option A: custom input file & multiple frequencies
 
@@ -58,3 +62,4 @@ Using a general SNR mapping function, the system delivers an accuracy of about 5
 
 ## License
 gnss-attitude is licensed under the GNU General Public License v3.0. See `LICENSE.txt` for more information.
+
