@@ -45,13 +45,16 @@ Using a general SNR mapping function, the system delivers an accuracy of about 5
 
 2. Edit `config.c`
 
-3. Compile
+3. Compile & Run
+
+   Option A: Custom input file
 
         make antenna
+        ./antenna [input_1] [input_2] [input_3]
 
-4. Run
+   Option B: Defualt input file (single-frequency)
 
-        ./antenna
+        make run_antenna
 
 ## License
 gnss-attitude is licensed under the GNU General Public License v3.0. See `LICENSE.txt` for more information.
