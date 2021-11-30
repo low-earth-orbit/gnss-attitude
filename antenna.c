@@ -27,6 +27,7 @@ int main(int argc, char **argv)
 	*/
 	FILE *fp = NULL;
 	FILE *fp2 = NULL;
+	FILE *fp3 = NULL;
 	FILE *fpw = NULL;
 
 	if (argc == 1)
@@ -39,7 +40,12 @@ int main(int argc, char **argv)
 			return (-1);
 		}
 	}
-	else if (argc == 2 || argc == 3)
+	else if (argc > 4)
+	{
+		fprintf(stderr, "Too many arguments. Usage:\n./antenna [input_1] [input_2]  [input_3]\n");
+		return (-1);
+	}
+	else
 	{
 		fp = fopen(argv[1], "r");
 		if (fp == NULL)
@@ -48,7 +54,7 @@ int main(int argc, char **argv)
 			return (-1);
 		}
 
-		if (argc == 3)
+		if (argc != 2)
 		{
 			fp2 = fopen(argv[2], "r");
 			if (fp2 == NULL)
@@ -56,12 +62,17 @@ int main(int argc, char **argv)
 				fprintf(stderr, "Error opening input file \"%s\".\n", argv[2]);
 				return (-1);
 			}
+
+			if (argc == 4)
+			{
+				fp3 = fopen(argv[3], "r");
+				if (fp3 == NULL)
+				{
+					fprintf(stderr, "Error opening input file \"%s\".\n", argv[3]);
+					return (-1);
+				}
+			}
 		}
-	}
-	else
-	{
-		fprintf(stderr, "Too many arguments. Usage:\n./antenna [input_1.txt] [input_2.txt]\n");
-		return (-1);
 	}
 
 	fpw = fopen(OUTPUT_FILE_PATH_DEFAULT, "w");
@@ -83,6 +94,7 @@ int main(int argc, char **argv)
 	{
 		argc++;
 	}
+
 	for (int i = 1; i < argc; i++)
 	{
 		FILE *fpThis;
@@ -93,6 +105,10 @@ int main(int argc, char **argv)
 		else if (i == 2) // second frequency
 		{
 			fpThis = fp2;
+		}
+		else if (i == 3) // third frequency
+		{
+			fpThis = fp3;
 		}
 		fgets(line, MAX_NUM_CHAR_LINE, fpThis); // Skip header
 		while (fgets(line, MAX_NUM_CHAR_LINE, fpThis) != NULL)
@@ -125,31 +141,35 @@ int main(int argc, char **argv)
 					{
 						adjSnr2(prn, el, snrThis);
 					}
+					else if (i == 3)
+					{
+						adjSnr3(prn, el, snrThis);
+					}
 				}
-				double *snrOther = (double *)malloc(sizeof(double));
-				*snrOther = -1.0;
+				double *snrOther1 = (double *)malloc(sizeof(double));
+				*snrOther1 = -1.0;
+				double *snrOther2 = (double *)malloc(sizeof(double));
+				*snrOther2 = -1.0;
 				if (i == 1)
 				{
-					satArray[satArrayIndex] = createSat(time, prn, az, el, snrThis, snrOther);
+					satArray[satArrayIndex] = createSat(time, prn, az, el, snrThis, snrOther1, snrOther2);
 				}
 				else if (i == 2)
 				{
-					satArray[satArrayIndex] = createSat(time, prn, az, el, snrOther, snrThis);
+					satArray[satArrayIndex] = createSat(time, prn, az, el, snrOther1, snrThis, snrOther2);
+				}
+				else if (i == 3)
+				{
+					satArray[satArrayIndex] = createSat(time, prn, az, el, snrOther1, snrOther2, snrThis);
 				}
 				satArrayIndex++;
 			}
 			free(time1);
 			free(time2); // free memory because time1 and time2 are concatenated to a new char* time
 		}
+		fclose(fpThis);
 	}
-
-	/*
-		close input file pointer
-	*/
 	free(line);
-	fclose(fp);
-	if (argc == 3)
-		fclose(fp2);
 
 	/*
 		catch empty data error
@@ -306,19 +326,22 @@ int main(int argc, char **argv)
 			}
 			else // real data, not simulation
 			{
-				if (*(*epochArray[i]).epochSatArray[j]->snr < 0)
-				{
-					cosA = getCosA2((epochArray[i])->epochSatArray[j]->prn, (*epochArray[i]).epochSatArray[j]->snr2);
-				}
-				else if (*(*epochArray[i]).epochSatArray[j]->snr2 < 0)
+				if (*(*epochArray[i]).epochSatArray[j]->snr > 0)
 				{
 					cosA = getCosA((epochArray[i])->epochSatArray[j]->prn, (*epochArray[i]).epochSatArray[j]->snr);
 				}
+				else if (*(*epochArray[i]).epochSatArray[j]->snr2 > 0)
+				{
+					cosA = getCosA2((epochArray[i])->epochSatArray[j]->prn, (*epochArray[i]).epochSatArray[j]->snr2);
+				}
+				else if (*(*epochArray[i]).epochSatArray[j]->snr3 > 0)
+				{
+					cosA = getCosA2((epochArray[i])->epochSatArray[j]->prn, (*epochArray[i]).epochSatArray[j]->snr3);
+				}
 			}
 
-			//double sigma = (3.0 / 81000.0) * pow(*(*epochArray[i]).epochSatArray[j]->el, 2) + 0.7;
-			double sigma = 1;
 			// Set each observation equation
+			double sigma = 1;
 			gsl_matrix_set(X, j, 0, xyz[0]); // coefficient c0 = x
 			gsl_matrix_set(X, j, 1, xyz[1]); // coefficient c1 = y
 			gsl_matrix_set(X, j, 2, xyz[2]); // coefficient c2 = z
@@ -496,7 +519,8 @@ int main(int argc, char **argv)
 		free(satArray[i]->az);
 		free(satArray[i]->el);
 		free(satArray[i]->snr);
-		free(satArray[i]->snr2); // free attributes
+		free(satArray[i]->snr2);
+		free(satArray[i]->snr3); // free attributes
 		free(satArray[i]);		 // free Sat
 	}
 	free(satArray); // free satArray

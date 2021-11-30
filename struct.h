@@ -9,6 +9,7 @@ typedef struct Sat
 	double *el;
 	double *snr;
 	double *snr2;
+	double *snr3;
 } Sat;
 
 typedef struct Epoch
@@ -23,7 +24,7 @@ typedef struct Sol
 	double *x, *y, *z, *az, *el; // x is E, y is N, z is U
 } Sol;
 
-Sat *createSat(char *time, char *prn, double *az, double *el, double *snr, double *snr2);
+Sat *createSat(char *time, char *prn, double *az, double *el, double *snr, double *snr2, double *snr3);
 Epoch *createEpoch(char *time, Sat **epochSatArray, int *numSat);
 Sol *createSol(double *x, double *y, double *z, double *az, double *el);
 void printEpochArray(Epoch **epochArray, long int numEpoch);

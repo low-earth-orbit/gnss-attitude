@@ -6,7 +6,7 @@
 #include "util.h"
 #include "struct.h"
 
-Sat *createSat(char *time, char *prn, double *az, double *el, double *snr, double *snr2)
+Sat *createSat(char *time, char *prn, double *az, double *el, double *snr, double *snr2, double *snr3)
 {
 	Sat *satObj = malloc(sizeof(Sat));
 	(*satObj).time = time;
@@ -15,6 +15,7 @@ Sat *createSat(char *time, char *prn, double *az, double *el, double *snr, doubl
 	(*satObj).el = el;
 	(*satObj).snr = snr;
 	(*satObj).snr2 = snr2;
+	(*satObj).snr3 = snr3;
 	return satObj;
 }
 

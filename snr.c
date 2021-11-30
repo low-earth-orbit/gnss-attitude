@@ -6,7 +6,19 @@
 #include "util.h"
 #include "struct.h"
 
-/* THIS FILE IS FOR UNB3 STATION */
+/* THIS FILE IS FOR UNB3 STATION 
+	Selected band 1 
+		GPS 			SIC
+		GLONASS 		SIC
+		BeiDou 			S1X
+		Galileo			S1X
+	Selected band 2
+		GPS				S5X
+		GLONASS			S2P
+		BeiDou			S5X
+		Galileo			S5X
+	No band 3
+*/
 
 /* GNSS satellite groups
 char *IIRLegacy[5] = {"G13", "G16", "G20", "G21", "G28"};
@@ -328,4 +340,21 @@ double getCosA2(char *prn, double *snr)
 
 	cosA = cos(deg2rad(alpha));
 	return cosA;
+}
+
+/*
+	No band 2 signals 
+*/
+void adjSnr3(char *prn, double *el, double *snr)
+{
+	printf("No band 3 signal selected in SNR module.\n");
+}
+
+/*
+	No band 2 signals 
+*/
+double getCosA3(char *prn, double *snr)
+{
+	printf("No band 3 signal selected in SNR module.\n");
+	return -1.0;
 }
