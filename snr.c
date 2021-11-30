@@ -8,9 +8,9 @@
 
 /* THIS FILE IS FOR UNB3 STATION 
 	Selected band 1 
-		GPS 			SIC
-		GLONASS 		SIC
-		BeiDou 			S1X
+		GPS				SIC
+		GLONASS			SIC
+		BeiDou			S1X
 		Galileo			S1X
 	Selected band 2
 		GPS				S5X
@@ -20,7 +20,7 @@
 	No band 3
 */
 
-/* GNSS satellite groups
+/* GPS
 char *IIRLegacy[5] = {"G13", "G16", "G20", "G21", "G28"};
 char *IIRImproved[3] = {"G22", "G19", "G02"};
 char *IIRM[7] = {"G05", "G07", "G12", "G15", "G17", "G29", "G31"};
@@ -343,18 +343,18 @@ double getCosA2(char *prn, double *snr)
 }
 
 /*
-	No band 2 signals 
+	Selected dand 3 signals
 */
 void adjSnr3(char *prn, double *el, double *snr)
 {
-	printf("No band 3 signal selected in SNR module.\n");
+	printf("No band 3 signal configured in SNR module.\n");
 }
 
 /*
-	No band 2 signals 
+	Selected dand 3 signals
 */
 double getCosA3(char *prn, double *snr)
 {
-	printf("No band 3 signal selected in SNR module.\n");
+	printf("No band 3 signal configured in SNR module.\n");
 	return -1.0;
 }
