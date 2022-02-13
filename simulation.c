@@ -36,13 +36,13 @@ typedef struct SimuSat
 
 /*
 	Generate points visible by the antenna, which are boresight angle dependent. This function assumes antenna azimuth = 180 deg. That is pointing to negative y (northing). Reference: https://mathworld.wolfram.com/SpherePointPicking.html
-	
+
 		sat: pointer to SimuSat object
-		
+
 		antEl: antenna's elevation angle (a.k.a. boresight angle) in degrees; if the antenna is pointing straight up, that is 90 deg.
-		
+
 		n: number of points on the ENTIRE sphere
-		
+
 		returns: number of satellites visible to the antenna with specific elevation angle
 */
 int randSat(SimuSat *sat, int n, double antEl)
@@ -109,9 +109,9 @@ int testSat(SimuSat *sat, int n, double antEl)
 		{
 			if (antEl == 90 || (antEl > 0 && xyz[2] > c * xyz[1] + h) || (antEl < 0 && xyz[2] < c * xyz[1] + h) || (antEl == 0 && xyz[1] < 0))
 			{
-				//xyz[2] = cos(phi) - h; // adjust by observer location
-				//normalizeXyz(xyz);
-				//xyz2ae(xyz[0], xyz[1], xyz[2], azel);
+				// xyz[2] = cos(phi) - h; // adjust by observer location
+				// normalizeXyz(xyz);
+				// xyz2ae(xyz[0], xyz[1], xyz[2], azel);
 
 				sat[numVisPt].x = xyz[0];
 				sat[numVisPt].y = xyz[1];
@@ -137,11 +137,11 @@ int main(void)
 	gsl_rng_env_setup();
 	const gsl_rng_type *T = gsl_rng_default;
 	gsl_rng *r = gsl_rng_alloc(T);
+	gsl_rng *r2 = gsl_rng_alloc(T);
 
 	double spd, snr;
 	int numVisPt;
 	double snrAdd;
-
 	fprintf(fpw, "SIMULATED INPUT FILE\n"); // print header
 
 	for (int i = 0; i < NUM_EPOCH; i++)
@@ -160,11 +160,26 @@ int main(void)
 			{
 				/* compute SNR by assumed relationship between SNR and off-boresight angle */
 				spd = spDist(visSat[j].x, visSat[j].y, visSat[j].z, 0, -cos(deg2rad(TRUE_EL)), sin(deg2rad(TRUE_EL))); // spd: off-boresight angle in rad
-				snr = SNR_A * cos(spd) + SNR_C;																		   // cosine relationship is default (preferred)
+				// snr = SNR_A * cos(spd) + SNR_C;																		   // cosine relationship
+				snr = -(SNR_A / 8100.0) * pow(rad2deg(spd), 2) + SNR_C; // quadratic
 				visSat[j].snr = snr;
 
-				/* apply uniform SNR variation */
-				snrAdd = (double)SNR_STD * gsl_ran_gaussian_ziggurat(r, 1);
+				/* apply SNR variation */
+				snrAdd = (double)SNR_STD * gsl_ran_gaussian_ziggurat(r, 1) * (1 + (SNR_STD_FACTOR - 1) * sin(spd));
+
+				/* apply skewness to simulate multipath: additional skewness for sat elev lower than 30 deg*/
+				if (SKEWNESS)
+				{
+					//	if (cos(spd) < 0.5)
+					//	{
+					//		snrAdd += -gsl_ran_levy_skew(r2, 1, 1, 1) * (0.5 - cos(spd)) * 2;
+					//	}
+					if (visSat[j].z < 0.5)
+					{
+						snrAdd += -gsl_ran_levy_skew(r2, 1, 1, 1) * (0.5 - visSat[j].z) * 2 * 5;
+						// printf("skew: %f  sat z: %f \n", snrAdd, visSat[j].z);
+					}
+				}
 
 				visSat[j].snr += snrAdd;
 

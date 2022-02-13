@@ -6,3 +6,4 @@ simulation
 *.txt
 snr_cosine_fit.c
 snrPatch.c
+.vscode/c_cpp_properties.json

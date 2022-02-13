@@ -120,9 +120,9 @@ int main(int argc, char **argv)
 			double *el = (double *)malloc(sizeof(double));
 			double *snrThis = (double *)malloc(sizeof(double));
 			sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, prn, az, el, snrThis);
-			if (*az < 0 || *az > 360 || *el > 90 || *el < 0 || *snrThis <= 0) // sanity check
+			if (*az <= 0 || *az >= 360 || *el >= 90 || *el <= 0 || *snrThis <= 30 || *snrThis >= 60 || prn[0] == 'C' || prn[0] == 'E') // exclusion; sanity check
 			{
-				printf("Skipped invalid data found in Az, El or SNR.\n");
+				// printf("Skipped invalid data found in Az, El or SNR.\n");
 				free(prn);
 				free(az);
 				free(el);
@@ -191,7 +191,7 @@ int main(int argc, char **argv)
 	*/
 	qsort(satArray, satArrayIndex, sizeof(Sat *), cmpSatArray);
 
-	/* 
+	/*
 		form epochArray
 	*/
 	Epoch **epochArray; // A epoch array storing all epochs
@@ -272,7 +272,7 @@ int main(int argc, char **argv)
 	/*
 		print epoch array to check file input read
 	*/
-	//printEpochArray(epochArray, *epochArrayIndex);
+	// printEpochArray(epochArray, *epochArrayIndex);
 
 	/*
 		Axelrad's method (Axelrad & Behre, 1999) -- Compared to Duncan's method, this is the proper use of SNR in determining antenna boresight vector. It requires antenna gain mapping (the relationship between off-boresight angle and SNR for the antenna) and adjustment to measured SNR.
@@ -283,7 +283,7 @@ int main(int argc, char **argv)
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
-		/*	
+		/*
 			Observation equation X*b = cos(a) corresponds to X*c = y below
 			See GNU Scientific Library Reference Manual for more: https://www.gnu.org/software/gsl/doc/html/lls.html
 		*/
@@ -312,17 +312,25 @@ int main(int argc, char **argv)
 			ae2xyz(*(*epochArray[i]).epochSatArray[j]->az, *(*epochArray[i]).epochSatArray[j]->el, xyz);
 
 			double cosA;
+			double spdDeg;
 			if (SIMULATION)
 			{
-				cosA = (*(*epochArray[i]).epochSatArray[j]->snr - SNR_C) / SNR_A; // find cosA from the mapping function snr = (MAX_SNR-MIN_SNR)*cos(A)+MIN_SNR;
-				if (cosA > 1)
-				{ // catch the case that cosA > 1
-					cosA = 1;
+				if (*(*epochArray[i]).epochSatArray[j]->snr > SNR_C)
+				{
+					spdDeg = 0;
 				}
-				else if (cosA < 0)
-				{ // catch the case that cosA < 0
-					cosA = 0;
+				else if (*(*epochArray[i]).epochSatArray[j]->snr < (SNR_C - SNR_A))
+				{
+					spdDeg = 90;
 				}
+				else
+				{
+					spdDeg = sqrt((SNR_C - *(*epochArray[i]).epochSatArray[j]->snr) * (8100.0 / SNR_A)); // quadratic
+				}
+				// printf("snr = %f \n", *(*epochArray[i]).epochSatArray[j]->snr);
+				// printf("spdDeg = %f \n", spdDeg);
+
+				cosA = cos(deg2rad(spdDeg));
 			}
 			else // real data, not simulation
 			{
@@ -360,11 +368,11 @@ int main(int argc, char **argv)
 		*(sol->z) = C(2);
 
 		/* least squares stats */
-		//printf("# covariance matrix:\n");
-		//printf("[ %+.5e, %+.5e, %+.5e  \n", COV(0, 0), COV(0, 1), COV(0, 2));
-		//printf("  %+.5e, %+.5e, %+.5e  \n", COV(1, 0), COV(1, 1), COV(1, 2));
-		//printf("  %+.5e, %+.5e, %+.5e ]\n", COV(2, 0), COV(2, 1), COV(2, 2));
-		//printf("# chisq = %g\n", chisq);
+		// printf("# covariance matrix:\n");
+		// printf("[ %+.5e, %+.5e, %+.5e  \n", COV(0, 0), COV(0, 1), COV(0, 2));
+		// printf("  %+.5e, %+.5e, %+.5e  \n", COV(1, 0), COV(1, 1), COV(1, 2));
+		// printf("  %+.5e, %+.5e, %+.5e ]\n", COV(2, 0), COV(2, 1), COV(2, 2));
+		// printf("# chisq = %g\n", chisq);
 		/*
 		double redChiSq = chisq / (n - 3); // reduced chisq = chisq / (# of signals - 3)
 		double lsStdX = sqrt(redChiSq * COV(0, 0))));
@@ -510,7 +518,7 @@ int main(int argc, char **argv)
 	fclose(fpw);
 
 	/*
-		free() file input 
+		free() file input
 	*/
 	for (long int i = 0; i < satArrayIndex; i++)
 	{

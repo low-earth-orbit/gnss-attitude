@@ -20,11 +20,11 @@ For potential testers:
 Using a general SNR mapping function, the system delivers an accuracy of about 5° - 20° (RMS). Better performance can be achieved if calibration is performed (under evaluation).
 
 ## Limitations
-1. Accuracy is subject to the number of signals received and satellite geometry, particularly when the antenna points down, in the woods, outside of GNSS service volume, etc.
+1. Accuracy is subject to satellite visibility and antenna-satellite geometry.
 
-2. Determines the boresight vector only. Rotation around the boresight axis is undetectable.
+2. Rotation around the boresight axis is undetectable.
 
-3. Does not work with antennas not following the typical gain pattern of a GNSS antenna, such as chip antenna.
+3. Does not work with GNSS antennas not following the ideal gain pattern.
 
 4. Requires one-time calibration.
 
@@ -43,11 +43,11 @@ Using a general SNR mapping function, the system delivers an accuracy of about 5
         sudo apt install build-essential
 
 ## Usage
-1. Save AZ/EL/SNR/MP from RTKLIB as `input.txt`
+1. In RTKLIB, save AZ/EL/SNR/MP of the selected frequency as `input.txt`
 
-2. Edit `snr.c` with parameters obtained from calibration
+2. Update `snr.c` with parameters obtained from calibration
 
-3. Edit `config.c`
+3. Edit `config.c` if necessary
 
 4. Compile and run
 
@@ -56,9 +56,16 @@ Using a general SNR mapping function, the system delivers an accuracy of about 5
         make antenna
         ./antenna [input_1] [input_2] [input_3]
 
-   Option B: default input file path & single frequency
+   Option B: default input file path `input.txt` & single frequency
  
         make run
+
+## Road map
+Under development
+
+## Planned
+- initial development release
+- adaptive SNR outlier remover
 
 ## License
 gnss-attitude is licensed under the GNU General Public License v3.0. See `LICENSE.txt` for more information.
