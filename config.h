@@ -14,8 +14,8 @@
 
 /* simulation mode: false (turned off) by default */
 #define SIMULATION true	  // simulation switch
-#define NUM_EPOCH 10000	  // number of epochs to simulate
-#define NUM_SAT_SPHERE 48 // number of GNSS satellites globally available
+#define NUM_EPOCH 100	  // number of epochs to simulate
+#define NUM_SAT_SPHERE 24 // number of GNSS satellites globally available
 #define SNR_A 10		  // quadratic mapping function SNR = -( SNR_A /8100) (off-boresight angle in degrees)^2 + SNR_C
 #define SNR_C 50		  // Max SNR value
 #define SNR_STD_MIN 1	  // minimum snr standard deviation i.e. at 0 deg off-boresight angle
@@ -30,5 +30,8 @@
 #define NUM_CHAR_DATE 10
 #define NUM_CHAR_TIME 10
 #define NUM_CHAR_SAT 3
+
+/* debugger */
+#define DEBUG true // full terminal output for debug
 
 #endif

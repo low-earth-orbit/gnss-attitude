@@ -122,7 +122,10 @@ int main(int argc, char **argv)
 			sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, prn, az, el, snrThis);
 			if (*az <= 0 || *az >= 360 || *el >= 90 || *el <= 0 || *snrThis <= 30 || *snrThis >= 60 || prn[0] == 'C' || prn[0] == 'E') // sanity check raw input data
 			{
-				// printf("Skipped invalid data found in Az, El or SNR.\n");
+				if (DEBUG)
+				{
+					printf("Skipped invalid data found in Az, El or SNR.\n");
+				}
 				free(prn);
 				free(az);
 				free(el);
@@ -272,7 +275,10 @@ int main(int argc, char **argv)
 	/*
 		print epoch array to check file input read
 	*/
-	// printEpochArray(epochArray, *epochArrayIndex);
+	if (DEBUG)
+	{
+		printEpochArray(epochArray, *epochArrayIndex);
+	}
 
 	/*
 		Axelrad's method (Axelrad & Behre, 1999) -- Compared to Duncan's method, this is the proper use of SNR in determining antenna boresight vector. It requires antenna gain mapping (the relationship between off-boresight angle and SNR for the antenna) and adjustment to measured SNR.
