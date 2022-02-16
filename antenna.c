@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 			double *el = (double *)malloc(sizeof(double));
 			double *snrThis = (double *)malloc(sizeof(double));
 			sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, prn, az, el, snrThis);
-			if ((!SIMULATION && (*az < 0 || *az > 360 || *el > 90 || *el < SAT_CUTOFF || *snrThis > ANT_SNR_RAW_MAX || *snrThis < ANT_SNR_RAW_MIN || prn[0] == 'C' || prn[0] == 'E')) || (SIMULATION && (*snrThis <= ((SNR_C - SNR_A) - 2 * SNR_STD_MAX) || *snrThis >= (SNR_C + 2 * SNR_STD_MIN)))) // defense line 1: check raw input data for invalid data
+			if ((!SIMULATION && (*az < 0 || *az > 360 || *el > 90 || *el < SAT_CUTOFF || *snrThis > ANT_SNR_RAW_MAX || *snrThis < ANT_SNR_RAW_MIN || prn[0] == 'C' || prn[0] == 'E')) || (SIMULATION && (*snrThis <= ((SNR_C - SNR_A) - 3 * SNR_STD_MAX) || *snrThis >= (SNR_C + 3 * SNR_STD_MIN)))) // defense line 1: check raw input data for invalid data
 			{
 				if (DEBUG)
 				{

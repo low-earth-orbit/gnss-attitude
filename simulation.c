@@ -174,20 +174,32 @@ int main(void)
 					snrSigma = SNR_STD_MIN + (SNR_STD_MAX - SNR_STD_MIN) * (SNR_C - snr) / SNR_A;
 				}
 
-				snrAdd = gsl_ran_gaussian_ziggurat(r, snrSigma);
-
-				/* apply skewness to simulate multipath: additional skewness for sat elev lower than 30 deg*/
-				if (SKEWNESS)
+				if (SKEW)
 				{
 					//	if (cos(spd) < 0.5)
 					//	{
-					//		snrAdd += -gsl_ran_levy_skew(r2, 1, 1, 1) * (0.5 - cos(spd)) * 2;
+					// snrAdd = snrSigma / 10 * gsl_ran_levy_skew(r2, 1, 1, 1);
 					//	}
-					if (visSat[j].z < 0.5)
+					// snrAdd = -1.4 * snrSigma * (gsl_ran_rayleigh(r2, 1) - sqrt(M_PI / 2));
+
+					if (rad2deg(spd) > 75)
 					{
-						snrAdd += -gsl_ran_levy_skew(r2, 1, 1, 1) * (0.5 - visSat[j].z) * 2 * 5;
-						// printf("skew: %f  sat z: %f \n", snrAdd, visSat[j].z);
+						snrAdd = -snrSigma * (gsl_ran_gamma(r2, 4, 0.5) - 2);
 					}
+					else if (rad2deg(spd) > 60)
+					{
+						snrAdd = -0.5 * snrSigma * (gsl_ran_gamma(r2, 4, 0.5) - 2) + 0.5 * snrSigma * gsl_ran_gaussian_ziggurat(r, 1);
+					}
+					else
+					{
+						snrAdd = snrSigma * gsl_ran_gaussian_ziggurat(r, 1);
+					}
+					// snrAdd = 0;
+					// printf("snrAdd = %lf\n", snrAdd);
+				}
+				else
+				{
+					snrAdd = gsl_ran_gaussian_ziggurat(r, snrSigma);
 				}
 
 				visSat[j].snr += snrAdd;
