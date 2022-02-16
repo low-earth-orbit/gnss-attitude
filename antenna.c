@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 			double *el = (double *)malloc(sizeof(double));
 			double *snrThis = (double *)malloc(sizeof(double));
 			sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, prn, az, el, snrThis);
-			if (*az <= 0 || *az >= 360 || *el >= 90 || *el <= 0 || *snrThis <= (40 - 2 * SNR_STD_MAX) || *snrThis >= (50 + 2 * SNR_STD_MIN) || prn[0] == 'C' || prn[0] == 'E') // sanity check raw input data
+			if ((!SIMULATION && (*az < 0 || *az > 360 || *el > 90 || *el < SAT_CUTOFF || *snrThis > ANT_SNR_RAW_MAX || *snrThis < ANT_SNR_RAW_MIN || prn[0] == 'C' || prn[0] == 'E')) || (SIMULATION && (*snrThis <= ((SNR_C - SNR_A) - 2 * SNR_STD_MAX) || *snrThis >= (SNR_C + 2 * SNR_STD_MIN)))) // defense line 1: check raw input data for invalid data
 			{
 				if (DEBUG)
 				{
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 			}
 			else
 			{
-				char *time = concat(time1, time2);
+
 				if (!SIMULATION)
 				{
 					if (i == 1)
@@ -148,7 +148,18 @@ int main(int argc, char **argv)
 					{
 						adjSnr3(prn, el, snrThis);
 					}
+
+					if (*snrThis > ANT_SNR_ADJ_MAX + 3 * ANT_SNR_STD_MIN || *snrThis < ANT_SNR_ADJ_MIN - 3 * ANT_SNR_STD_MAX) // defense line 2: recorded, but will not be used in calculation, treated as outliers.
+					{
+						*snrThis = -1;
+						if (DEBUG)
+						{
+							printf("Removed an SNR outlier.\n");
+						}
+					}
 				}
+
+				char *time = concat(time1, time2);
 				double *snrOther1 = (double *)malloc(sizeof(double));
 				*snrOther1 = -1.0;
 				double *snrOther2 = (double *)malloc(sizeof(double));
@@ -350,7 +361,7 @@ int main(int argc, char **argv)
 			}
 			else // real data, not simulation
 			{
-				if (*(*epochArray[i]).epochSatArray[j]->snr > 0)
+				if (*(*epochArray[i]).epochSatArray[j]->snr > 0) // check if snr is valid. invalid is assigned with value of -1
 				{
 					cosA = getCosA((epochArray[i])->epochSatArray[j]->prn, (*epochArray[i]).epochSatArray[j]->snr);
 				}
@@ -362,11 +373,14 @@ int main(int argc, char **argv)
 				{
 					cosA = getCosA2((epochArray[i])->epochSatArray[j]->prn, (*epochArray[i]).epochSatArray[j]->snr3);
 				}
-				// 0.5 --- 1.5 sigma = -0.01 * (*(*epochArray[i]).epochSatArray[j]->snr) + 0.55;
-				sigma = -0.035 * (*(*epochArray[i]).epochSatArray[j]->snr) + 1.85; // 1 <---> 4.5
-				if (sigma < 0.1)
+
+				if (*(*epochArray[i]).epochSatArray[j]->snr > SNR_C)
 				{
-					sigma = 0.1;
+					sigma = ANT_SNR_STD_MIN;
+				}
+				else
+				{
+					sigma = ANT_SNR_STD_MIN + (ANT_SNR_STD_MAX - ANT_SNR_STD_MIN) * (ANT_SNR_ADJ_MAX - *(*epochArray[i]).epochSatArray[j]->snr) / (ANT_SNR_ADJ_MAX - ANT_SNR_ADJ_MIN);
 				}
 			}
 
@@ -520,7 +534,7 @@ int main(int argc, char **argv)
 
 	printf("----------\nStatistics\n----------\nNumber of epochs\n%li\n", *epochArrayIndex);
 
-	if (TRUE_EL >= -90 && TRUE_EL <= 90 && TRUE_AZ <= 360 && TRUE_AZ >= 0) // if antenna truth is provided by the user)
+	if ((TRUE_EL >= -90 && TRUE_EL <= 90 && TRUE_AZ <= 360 && TRUE_AZ >= 0)) // if antenna truth is provided by the user)
 	{
 		printf("\nAntenna truth by user input (E, N, U, Az, El)\n%.2f, %.2f, %.2f, %.2f°, %.2f°\n", trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2], (double)TRUE_AZ, (double)TRUE_EL);
 	}
@@ -530,9 +544,9 @@ int main(int argc, char **argv)
 
 	printf("\nStandard deviation\nE = %.4f\nN = %.4f\nU = %.4f\n3D = %.2f°\n", stdX, stdY, stdZ, stdA);
 
-	if (TRUE_EL >= -90 && TRUE_EL <= 90 && TRUE_AZ <= 360 && TRUE_AZ >= 0) // if antenna truth is provided by the user)
+	if (RMS && (TRUE_EL >= -90 && TRUE_EL <= 90 && TRUE_AZ <= 360 && TRUE_AZ >= 0)) // if antenna truth is provided by the user
 	{
-		printf("\nRoot-mean-square deviation\nE = %.4f\nN = %.4f\nU = %.4f\n3D = %.2f°\n", rmsX, rmsY, rmsZ, rmsA);
+		printf("\nRMS\nE = %.4f\nN = %.4f\nU = %.4f\n3D = %.2f°\n", rmsX, rmsY, rmsZ, rmsA);
 	}
 
 	/* close output file */
@@ -580,6 +594,14 @@ int main(int argc, char **argv)
 
 	clock_t endTime = clock();
 	double timeSpent = (double)(endTime - startTime) / CLOCKS_PER_SEC;
+	if (SIMULATION) // remind it is simulation
+	{
+		printf("\nRun in SIMULATION mode");
+	}
+	else
+	{
+		printf("\nRun in REAL DATA mode");
+	}
 	printf("\nProgram execution time: %.2f seconds\n", timeSpent);
 
 	/*

@@ -1,28 +1,38 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-/* file IO */
-#define INPUT_FILE_PATH_DEFAULT "input.txt"
-#define OUTPUT_FILE_PATH_DEFAULT "output.txt"
+/* Antenna parameters */
+#define ANT_SNR_STD_MIN (1.02 + 1.52) / 2
+#define ANT_SNR_STD_MAX (4.53 + 3.75) / 2
+#define ANT_SNR_RAW_MIN 20 // absolute min measured SNR
+#define ANT_SNR_RAW_MAX 60 // absolute maximum measured SNR
+#define ANT_SNR_ADJ_MIN 42 // average min adjusted SNR
+#define ANT_SNR_ADJ_MAX 50 // average max adjusted SNR
+#define SAT_CUTOFF 0	   // satellite cutoff elevation angle
 
-/* if true azimuth and elevation angle of the antenna are known, input here for statistics (in degrees) */
-#define TRUE_EL 30
-#define TRUE_AZ 35
+/* antenna truth for statistics or simulation */
+#define TRUE_EL 90 // in degrees
+#define TRUE_AZ -180
 
 /* processing options */
 #define CONVERGENCE_CORRECTION false // elevation corrector to determined elevation angle
 
-/* simulation mode: false (turned off) by default */
+/* simulation mode */
 #define SIMULATION false  // simulation switch
-#define NUM_EPOCH 10000	  // number of epochs to simulate
+#define NUM_EPOCH 48	  // number of epochs to simulate
 #define NUM_SAT_SPHERE 24 // number of GNSS satellites globally available
-#define SNR_A 10		  // quadratic mapping function SNR = -( SNR_A /8100) (off-boresight angle in degrees)^2 + SNR_C
-#define SNR_C 50		  // Max SNR value
-#define SNR_STD_MIN 1	  // minimum snr standard deviation i.e. at 0 deg off-boresight angle
-#define SNR_STD_MAX 4.5	  // max snr standard deviation i.e. at 90 deg off-boresight angle
+#define SNR_A 8			  // quadratic mapping function SNR = -( SNR_A /8100) (off-boresight angle in degrees)^2 + SNR_C
+#define SNR_C 50		  // max SNR value
+#define SNR_STD_MIN 1.02  // minimum snr standard deviation i.e. at 0 deg off-boresight angle
+#define SNR_STD_MAX 4.53  // max snr standard deviation i.e. at 90 deg off-boresight angle
 #define SKEWNESS false	  // simulate multipath effect dragging down SNR values at lower elev sat
 
-/* file and array sizes */
+/* file IO */
+#define DEBUG false // full terminal output for debug
+#define RMS true	// output rms (requires antenna truth)
+
+#define INPUT_FILE_PATH_DEFAULT "input.txt"
+#define OUTPUT_FILE_PATH_DEFAULT "output.txt"
 #define MAX_NUM_EPOCH 86400		 // supports up to 24h data @ 1hz rate, change if your file has number of epochs more than this
 #define MAX_NUM_SIGNAL_EPOCH 200 // maximum number of satellite signals visible in an epoch
 #define MAX_NUM_SIGNAL (MAX_NUM_EPOCH * MAX_NUM_SIGNAL_EPOCH)
@@ -30,8 +40,5 @@
 #define NUM_CHAR_DATE 10
 #define NUM_CHAR_TIME 10
 #define NUM_CHAR_SAT 3
-
-/* debugger */
-#define DEBUG true // full terminal output for debug
 
 #endif

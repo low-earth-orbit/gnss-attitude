@@ -10,7 +10,7 @@
 	Selected band 1
 		GPS				SIC
 		GLONASS			SIC
-		
+
 	No band 2
 	No band 3
 */
@@ -26,7 +26,7 @@ char *III[5] = {"G04", "G11", "G14", "G18", "G23"};
 char *gps1[4] = {"G13", "G16", "G20", "G21"};
 char *gps2[2] = {"G10", "G32"};
 
-/* GPS S5X 
+/* GPS S5X
 char *l5gps1[7] = {"G05", "G07", "G12", "G15", "G17", "G29", "G31"};
 */
 
@@ -36,7 +36,7 @@ char *glo2[1] = {"R16"};
 char *glo3[1] = {"R01"};
 char *glo4[3] = {"R18", "R10", "R08"};
 
-/* GLONASS S2P 
+/* GLONASS S2P
 char *l2glo1[2] = {"R01", "R13"};
 char *l2glo2[2] = {"R16", "R22"};
 char *l2glo3[1] = {"R19"};
@@ -46,12 +46,12 @@ char *l2glo3[1] = {"R19"};
 char *bdsIGSO[3] = {"C38", "C39", "C40"};
 */
 
-/* Galileo S1X 
+/* Galileo S1X
 char *gal1[1] = {"E18"};
 char *gal2[3] = {"E11", "E12", "E19"};
 */
 
-/* Galileo S5X 
+/* Galileo S5X
 char *l5gal1[2] = {"E11", "E19"};
 char *l5gal2[2] = {"E14", "E18"};
 char *l5gal3[1] = {"E12"};
@@ -83,7 +83,7 @@ void adjSnr(char *prn, double *el, double *snr)
 		{
 			*snr += (1 / 2580.72026229872) * pow((*el - 34.5483935101112), 2);
 		}
-		*snr -= 137.57710845457-50; // normalize so max is 50
+		*snr -= 137.57710845457 - 50; // normalize so max is 50
 	}
 	else if (prn[0] == 'R') // if GLO
 	{
@@ -110,8 +110,8 @@ void adjSnr(char *prn, double *el, double *snr)
 			*snr -= -1.56287012522724;
 		}
 		// no power adjustment for 03,07,02,17,14,15,21,11,09,24,04,12,05,23
-		
-		*snr -= 139.571690147127-50; // normalize so max is 50
+
+		*snr -= 139.571690147127 - 50; // normalize so max is 50
 	}
 }
 
@@ -127,12 +127,12 @@ double getCosA(char *prn, double *snr)
 	if (prn[0] == 'G') // if GPS
 	{
 		a = -0.00110280101958772; // coefficient A in SNR mapping function SNR = A a^2 + c
-		//c = 137.57710845457;	  // constant b in SNR mapping function 137.57710845457 + 6
+								  //  c = 137.57710845457;	  // constant b in SNR mapping function 137.57710845457 + 6
 	}
 	else if (prn[0] == 'R') // if GLO
 	{
 		a = -0.000870181419750473; // coefficient A in SNR mapping function SNR = A a^2 + c
-		//c = 139.571690147127;	   // constant b in SNR mapping function 139.571690147127 + 6
+								   //  c = 139.571690147127;	   // constant b in SNR mapping function 139.571690147127 + 6
 	}
 	else
 	{
