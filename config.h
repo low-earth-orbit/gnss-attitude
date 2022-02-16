@@ -7,20 +7,20 @@
 
 /* if true azimuth and elevation angle of the antenna are known, input here for statistics (in degrees) */
 #define TRUE_EL 30
-#define TRUE_AZ 35
+#define TRUE_AZ 180
 
 /* processing options */
 #define CONVERGENCE_CORRECTION false // elevation corrector to determined elevation angle
 
 /* simulation mode: false (turned off) by default */
-#define SIMULATION false  // simulation switch
+#define SIMULATION true	  // simulation switch
 #define NUM_EPOCH 10000	  // number of epochs to simulate
-#define NUM_SAT_SPHERE 50 // number of GNSS satellites globally available
-#define SNR_A 8			  // mapping function SNR = A a^2 + c
-#define SNR_C 52		  // Max SNR value
-#define SNR_STD 0		  // when SNR_STD ~ 1.25, UNB3 double freq RMS ~ 1.62 deg
-#define SNR_STD_FACTOR 1  // maximum SNR STD is SNR_STD_FACTOR times SNR_STD at 90 deg off-boresight angle
-#define SKEWNESS true	  // simulate multipath effect dragging down SNR values at lower elev sat
+#define NUM_SAT_SPHERE 48 // number of GNSS satellites globally available
+#define SNR_A 10		  // quadratic mapping function SNR = -( SNR_A /8100) (off-boresight angle in degrees)^2 + SNR_C
+#define SNR_C 50		  // Max SNR value
+#define SNR_STD_MIN 1	  // minimum snr standard deviation i.e. at 0 deg off-boresight angle
+#define SNR_STD_MAX 4.5	  // max snr standard deviation i.e. at 90 deg off-boresight angle
+#define SKEWNESS false	  // simulate multipath effect dragging down SNR values at lower elev sat
 
 /* file and array sizes */
 #define MAX_NUM_EPOCH 86400		 // supports up to 24h data @ 1hz rate, change if your file has number of epochs more than this

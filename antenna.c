@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 			double *el = (double *)malloc(sizeof(double));
 			double *snrThis = (double *)malloc(sizeof(double));
 			sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, prn, az, el, snrThis);
-			if (*az <= 0 || *az >= 360 || *el >= 90 || *el <= 0 || *snrThis <= 30 || *snrThis >= 60 || prn[0] == 'C' || prn[0] == 'E') // exclusion; sanity check
+			if (*az <= 0 || *az >= 360 || *el >= 90 || *el <= 0 || *snrThis <= 30 || *snrThis >= 60 || prn[0] == 'C' || prn[0] == 'E') // sanity check raw input data
 			{
 				// printf("Skipped invalid data found in Az, El or SNR.\n");
 				free(prn);
@@ -313,6 +313,7 @@ int main(int argc, char **argv)
 
 			double cosA;
 			double spdDeg;
+			double sigma; // standard deviation of cosA for this observation
 			if (SIMULATION)
 			{
 				if (*(*epochArray[i]).epochSatArray[j]->snr > SNR_C)
@@ -325,12 +326,21 @@ int main(int argc, char **argv)
 				}
 				else
 				{
-					spdDeg = sqrt((SNR_C - *(*epochArray[i]).epochSatArray[j]->snr) * (8100.0 / SNR_A)); // quadratic
+					spdDeg = sqrt((SNR_C - (*(*epochArray[i]).epochSatArray[j]->snr)) * 8100.0 / SNR_A); // quadratic
 				}
 				// printf("snr = %f \n", *(*epochArray[i]).epochSatArray[j]->snr);
 				// printf("spdDeg = %f \n", spdDeg);
 
 				cosA = cos(deg2rad(spdDeg));
+
+				if (*(*epochArray[i]).epochSatArray[j]->snr > SNR_C)
+				{
+					sigma = SNR_STD_MIN;
+				}
+				else
+				{
+					sigma = SNR_STD_MIN + (SNR_STD_MAX - SNR_STD_MIN) * (SNR_C - *(*epochArray[i]).epochSatArray[j]->snr) / SNR_A;
+				}
 			}
 			else // real data, not simulation
 			{
@@ -346,15 +356,20 @@ int main(int argc, char **argv)
 				{
 					cosA = getCosA2((epochArray[i])->epochSatArray[j]->prn, (*epochArray[i]).epochSatArray[j]->snr3);
 				}
+				// 0.5 --- 1.5 sigma = -0.01 * (*(*epochArray[i]).epochSatArray[j]->snr) + 0.55;
+				sigma = -0.035 * (*(*epochArray[i]).epochSatArray[j]->snr) + 1.85; // 1 <---> 4.5
+				if (sigma < 0.1)
+				{
+					sigma = 0.1;
+				}
 			}
 
 			// Set each observation equation
-			double sigma = 1;
 			gsl_matrix_set(X, j, 0, xyz[0]); // coefficient c0 = x
 			gsl_matrix_set(X, j, 1, xyz[1]); // coefficient c1 = y
 			gsl_matrix_set(X, j, 2, xyz[2]); // coefficient c2 = z
 			gsl_vector_set(y, j, cosA);
-			gsl_vector_set(w, j, 1.0 / (sigma * sigma));
+			gsl_vector_set(w, j, 1.0 / (sigma * sigma)); // inverse variance weight
 		}
 
 		/* run multi-parameter regression */

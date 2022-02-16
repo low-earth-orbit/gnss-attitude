@@ -152,7 +152,7 @@ int main(void)
 			fprintf(stderr, "malloc() failed for creating visSat\n");
 			exit(-1);
 		}
-
+		double snrSigma;
 		numVisPt = randSat(visSat, NUM_SAT_SPHERE, TRUE_EL);
 		if (numVisPt != 0)
 		{
@@ -165,7 +165,16 @@ int main(void)
 				visSat[j].snr = snr;
 
 				/* apply SNR variation */
-				snrAdd = (double)SNR_STD * gsl_ran_gaussian_ziggurat(r, 1) * (1 + (SNR_STD_FACTOR - 1) * sin(spd));
+				if (snr > SNR_C)
+				{
+					snrSigma = SNR_STD_MIN;
+				}
+				else
+				{
+					snrSigma = SNR_STD_MIN + (SNR_STD_MAX - SNR_STD_MIN) * (SNR_C - snr) / SNR_A;
+				}
+
+				snrAdd = gsl_ran_gaussian_ziggurat(r, snrSigma);
 
 				/* apply skewness to simulate multipath: additional skewness for sat elev lower than 30 deg*/
 				if (SKEWNESS)
