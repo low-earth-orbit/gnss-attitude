@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 			double *el = (double *)malloc(sizeof(double));
 			double *snrThis = (double *)malloc(sizeof(double));
 			sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, prn, az, el, snrThis);
-			if (*az <= 0 || *az >= 360 || *el >= 90 || *el <= 0 || *snrThis <= 30 || *snrThis >= 60 || prn[0] == 'C' || prn[0] == 'E') // sanity check raw input data
+			if (*az <= 0 || *az >= 360 || *el >= 90 || *el <= 0 || *snrThis <= (40 - 2 * SNR_STD_MAX) || *snrThis >= (50 + 2 * SNR_STD_MIN) || prn[0] == 'C' || prn[0] == 'E') // sanity check raw input data
 			{
 				if (DEBUG)
 				{

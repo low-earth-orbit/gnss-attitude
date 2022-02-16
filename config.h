@@ -7,14 +7,14 @@
 
 /* if true azimuth and elevation angle of the antenna are known, input here for statistics (in degrees) */
 #define TRUE_EL 30
-#define TRUE_AZ 180
+#define TRUE_AZ 35
 
 /* processing options */
 #define CONVERGENCE_CORRECTION false // elevation corrector to determined elevation angle
 
 /* simulation mode: false (turned off) by default */
-#define SIMULATION true	  // simulation switch
-#define NUM_EPOCH 100	  // number of epochs to simulate
+#define SIMULATION false  // simulation switch
+#define NUM_EPOCH 10000	  // number of epochs to simulate
 #define NUM_SAT_SPHERE 24 // number of GNSS satellites globally available
 #define SNR_A 10		  // quadratic mapping function SNR = -( SNR_A /8100) (off-boresight angle in degrees)^2 + SNR_C
 #define SNR_C 50		  // Max SNR value
