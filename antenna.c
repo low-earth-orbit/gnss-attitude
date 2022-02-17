@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 			double *el = (double *)malloc(sizeof(double));
 			double *snrThis = (double *)malloc(sizeof(double));
 			sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, prn, az, el, snrThis);
-			if ((!SIMULATION && (*az < 0 || *az > 360 || *el > 90 || *el < SAT_CUTOFF || *snrThis > ANT_SNR_RAW_MAX || *snrThis < ANT_SNR_RAW_MIN || prn[0] == 'C' || prn[0] == 'E')) || (SIMULATION && (*snrThis <= ((SNR_C - SNR_A) - 3 * SNR_STD_MAX) || *snrThis >= (SNR_C + 3 * SNR_STD_MIN)))) // defense line 1: check raw input data for invalid data
+			if ((!SIMULATION && (*az < 0 || *az > 360 || *el > 90 || *el < SAT_CUTOFF || *snrThis > ANT_SNR_RAW_MAX || *snrThis < ANT_SNR_RAW_MIN || prn[0] == 'C' || prn[0] == 'E')) || (SIMULATION && (*snrThis <= ((SNR_C - SNR_A) - OUTLIER_FACTOR * SNR_STD_MAX) || *snrThis >= (SNR_C + OUTLIER_FACTOR * SNR_STD_MIN)))) // defense line 1: check raw input data for invalid data
 			{
 				if (DEBUG)
 				{
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 						adjSnr3(prn, el, snrThis);
 					}
 
-					if (*snrThis > ANT_SNR_ADJ_MAX + 3 * ANT_SNR_STD_MIN || *snrThis < ANT_SNR_ADJ_MIN - 3 * ANT_SNR_STD_MAX) // defense line 2: recorded, but will not be used in calculation, treated as outliers.
+					if (*snrThis > ANT_SNR_ADJ_MAX + OUTLIER_FACTOR * ANT_SNR_STD_MIN || *snrThis < ANT_SNR_ADJ_MIN - OUTLIER_FACTOR * ANT_SNR_STD_MAX) // defense line 2: recorded, but will not be used in calculation, treated as outliers.
 					{
 						*snrThis = -1;
 						if (DEBUG)
@@ -428,33 +428,11 @@ int main(int argc, char **argv)
 		/* from xyz solution derive azimuth-elevation solution*/
 		xyz2aeSol(*(sol->x), *(sol->y), *(sol->z), sol);
 
-		/* apply convergence correction built by simulation */
+		/* apply convergence correction built by simulation FOR UBLOX patch antenna */
 		if (CONVERGENCE_CORRECTION)
 		{
-			if (*(sol->el) > 40.181)
-			{
-				*(sol->el) += 0.0000022678 * pow(*(sol->el), 3) - 0.0005537871 * pow(*(sol->el), 2) + 0.0455341172 * *(sol->el) - 1.2636551736;
-			}
-			else if (*(sol->el) > 0.562466)
-			{
-				*(sol->el) += 0.0000029756 * pow(*(sol->el), 3) - 0.0002119836 * pow(*(sol->el), 2) + 0.0133919561 * *(sol->el) - 0.5684236546;
-			}
-			else if (*(sol->el) > -33.9139)
-			{
-				*(sol->el) += -0.0000374714 * pow(*(sol->el), 3) - 0.0058097797 * pow(*(sol->el), 2) + 0.0088882136 * *(sol->el) - 0.5690671978;
-			}
-			else if (*(sol->el) > -61.2864)
-			{
-				*(sol->el) += 0.0000074641 * pow(*(sol->el), 3) + 0.0074059911 * pow(*(sol->el), 2) + 0.7488207967 * *(sol->el) + 11.0845716711;
-			}
-			else if (*(sol->el) > -73.799)
-			{
-				*(sol->el) += 0.0029469680 * pow(*(sol->el), 3) + 0.5621635563 * pow(*(sol->el), 2) + 35.6911758009 * *(sol->el) + 745.5426340882;
-			}
-			else if (*(sol->el) <= -73.799) // at this elevation angle, the result is not reliable anyway
-			{
-				*(sol->el) += -0.0418102295 * pow(*(sol->el), 2) - 5.4402816535 * *(sol->el) - 185.1646192938;
-			}
+
+			*(sol->el) += 0.00000001706777591383 * pow(*(sol->el), 5) - 0.00000365830463561523 * pow(*(sol->el), 4) + 0.00029184216767805400 * pow(*(sol->el), 3) - 0.01844501736946570000 * pow(*(sol->el), 2) + 1.38136248571286000000 * (*(sol->el)) - 48.36802167429280000000;
 
 			if (*(sol->el) > 90)
 			{
@@ -464,6 +442,7 @@ int main(int argc, char **argv)
 			{
 				*(sol->el) = -90;
 			}
+
 			// recompute xyz
 			ae2xyzSol(*(sol->az), *(sol->el), sol);
 		}

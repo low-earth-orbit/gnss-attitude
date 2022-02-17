@@ -127,12 +127,10 @@ double getCosA(char *prn, double *snr)
 	if (prn[0] == 'G') // if GPS
 	{
 		a = -0.00110280101958772; // coefficient A in SNR mapping function SNR = A a^2 + c
-								  //   c = 137.57710845457;	  // constant b in SNR mapping function 137.57710845457 + 6
 	}
 	else if (prn[0] == 'R') // if GLO
 	{
 		a = -0.000870181419750473; // coefficient A in SNR mapping function SNR = A a^2 + c
-								   //   c = 139.571690147127;	   // constant b in SNR mapping function 139.571690147127 + 6
 	}
 	else
 	{
@@ -152,10 +150,10 @@ double getCosA(char *prn, double *snr)
 		alpha = sqrt(alphaSq);
 	}
 
-	// if (alpha > 90)
-	//{
-	//	alpha = 90;
-	// }
+	if (alpha > 90)
+	{
+		alpha = 90;
+	}
 
 	cosA = cos(deg2rad(alpha));
 	return cosA;
