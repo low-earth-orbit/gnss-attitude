@@ -86,6 +86,50 @@ int randSat(SimuSat *sat, int n, double antEl)
 	return numVisPt;
 }
 
+/*
+	generate n visible satellite
+*/
+int randSat2(SimuSat *sat, int n, double antEl)
+{
+	int numVisPt = 0;
+	double theta, phi;
+	double azel[2];
+	double xyz[3];
+
+	/* r_e = 6370	r_s = 6370 + 21450 = 27820 */
+	double h = 6370 / 27820;
+	double c = tan(M_PI_2 - deg2rad(antEl));
+
+	while (numVisPt < n)
+	{
+		theta = 2.0 * M_PI * (double)rand() / (double)RAND_MAX;
+		phi = acos(2.0 * (double)rand() / (double)RAND_MAX - 1);
+		xyz[0] = sin(phi) * cos(theta);
+		xyz[1] = sin(phi) * sin(theta);
+		xyz[2] = cos(phi) / 2;
+
+		// if in visible area, record the point
+		if (xyz[2] > h)
+		{
+			if (antEl == 90 || (antEl > 0 && xyz[2] > c * xyz[1] + h) || (antEl < 0 && xyz[2] < c * xyz[1] + h) || (antEl == 0 && xyz[1] < 0))
+			{
+				xyz[2] = cos(phi) - h; // adjust by observer location
+				normalizeXyz(xyz);
+				xyz2ae(xyz[0], xyz[1], xyz[2], azel);
+
+				sat[numVisPt].x = xyz[0];
+				sat[numVisPt].y = xyz[1];
+				sat[numVisPt].z = xyz[2];
+				sat[numVisPt].az = azel[0];
+				sat[numVisPt].el = azel[1];
+				sat[numVisPt].snr = 0; // snr will be updated in main()
+				numVisPt++;
+			}
+		}
+	}
+	return numVisPt;
+}
+
 int testSat(SimuSat *sat, int n, double antEl)
 {
 	int numVisPt = 0;
@@ -146,14 +190,32 @@ int main(void)
 
 	for (int i = 0; i < NUM_EPOCH; i++)
 	{ // one simulation per loop
-		SimuSat *visSat = (SimuSat *)malloc(NUM_SAT_SPHERE * sizeof(SimuSat));
-		if (visSat == NULL)
+		SimuSat *visSat;
+		if (SIMULATE_SAT_VISIBLE)
 		{
-			fprintf(stderr, "malloc() failed for creating visSat\n");
-			exit(-1);
+			visSat = (SimuSat *)malloc(NUM_SAT_VISIBLE * sizeof(SimuSat));
+
+			if (visSat == NULL)
+			{
+				fprintf(stderr, "malloc() failed for creating visSat\n");
+				exit(-1);
+			}
+
+			numVisPt = randSat2(visSat, NUM_SAT_VISIBLE, TRUE_EL);
 		}
+		else
+		{
+			visSat = (SimuSat *)malloc(NUM_SAT_SPHERE * sizeof(SimuSat));
+
+			if (visSat == NULL)
+			{
+				fprintf(stderr, "malloc() failed for creating visSat\n");
+				exit(-1);
+			}
+			numVisPt = randSat(visSat, NUM_SAT_SPHERE, TRUE_EL);
+		}
+
 		double snrSigma;
-		numVisPt = randSat(visSat, NUM_SAT_SPHERE, TRUE_EL);
 		if (numVisPt != 0)
 		{
 			for (int j = 0; j < numVisPt; j++)

@@ -503,13 +503,13 @@ int main(int argc, char **argv)
 	rmsX = sqrt(sumX / *epochArrayIndex);
 	rmsY = sqrt(sumY / *epochArrayIndex);
 	rmsZ = sqrt(sumZ / *epochArrayIndex);
-	double rmsA = rad2deg(asin(sqrt(pow(rmsX, 2) + pow(rmsY, 2) + pow(rmsZ, 2))));
+	double rmsA = rad2deg(sqrt(pow(rmsX, 2) + pow(rmsY, 2) + pow(rmsZ, 2)));
 
 	/* STD by component */
-	stdX = sqrt(sumX2 / (*epochArrayIndex - 1)); // minus 1 since using sample mean
-	stdY = sqrt(sumY2 / (*epochArrayIndex - 1));
-	stdZ = sqrt(sumZ2 / (*epochArrayIndex - 1));
-	double stdA = rad2deg(asin(sqrt(pow(stdX, 2) + pow(stdY, 2) + pow(stdZ, 2))));
+	stdX = sqrt(sumX2 / (*epochArrayIndex )); 
+	stdY = sqrt(sumY2 / (*epochArrayIndex));
+	stdZ = sqrt(sumZ2 / (*epochArrayIndex));
+	double stdA = rad2deg(sqrt(pow(stdX, 2) + pow(stdY, 2) + pow(stdZ, 2)));
 
 	printf("----------\nStatistics\n----------\nNumber of epochs\n%li\n", *epochArrayIndex);
 

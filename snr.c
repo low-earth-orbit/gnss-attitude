@@ -5,6 +5,7 @@
 #include <math.h>
 #include "util.h"
 #include "struct.h"
+#include "config.h" // configuration
 
 /* THIS FILE IS FOR Ublox antenna
 	Selected band 1
@@ -83,7 +84,7 @@ void adjSnr(char *prn, double *el, double *snr)
 		{
 			*snr += (1 / 2580.72026229872) * pow((*el - 34.5483935101112), 2);
 		}
-		*snr -= 137.57710845457 - 50; // normalize so max is 50
+		*snr -= 137.57710845457 - ANT_SNR_ADJ_MAX; // normalize so max is ANT_SNR_ADJ_MAX
 	}
 	else if (prn[0] == 'R') // if GLO
 	{
@@ -111,7 +112,7 @@ void adjSnr(char *prn, double *el, double *snr)
 		}
 		// no power adjustment for 03,07,02,17,14,15,21,11,09,24,04,12,05,23
 
-		*snr -= 139.571690147127 - 50; // normalize so max is 50
+		*snr -= 139.571690147127 - ANT_SNR_ADJ_MAX; // normalize so max is ANT_SNR_ADJ_MAX
 	}
 }
 
@@ -123,19 +124,30 @@ void adjSnr(char *prn, double *el, double *snr)
 double getCosA(char *prn, double *snr)
 {
 	double a, c;
-	c = 50;
+	c = ANT_SNR_ADJ_MAX;
 	if (prn[0] == 'G') // if GPS
 	{
-		a = -0.00110280101958772; // coefficient A in SNR mapping function SNR = A a^2 + c
+		a = -(ANT_SNR_ADJ_MAX - ANT_SNR_ADJ_MIN) / 8100.0;
+		// a = -0.00110280101958772; // coefficient A in SNR mapping function SNR = A a^2 + c
 	}
 	else if (prn[0] == 'R') // if GLO
 	{
-		a = -0.000870181419750473; // coefficient A in SNR mapping function SNR = A a^2 + c
+		a = -(ANT_SNR_ADJ_MAX - ANT_SNR_ADJ_MIN) / 8100.0;
+		// a = -0.000870181419750473; // coefficient A in SNR mapping function SNR = A a^2 + c
 	}
 	else
 	{
 		fprintf(stderr, "PRN not recognized; check your input file.\n");
 	}
+
+	// if (*snr > ANT_SNR_ADJ_MAX)
+	// {
+	// 	*snr = ANT_SNR_ADJ_MAX - (ANT_SNR_STD_MIN * OUTLIER_FACTOR - (*snr - c)); // exceeds less, substract more
+	// }
+	// else if (*snr < ANT_SNR_ADJ_MIN)
+	// {
+	// 	*snr = ANT_SNR_ADJ_MIN + (ANT_SNR_STD_MAX * OUTLIER_FACTOR - (*snr - c)); // falls behind less, add more
+	// }
 
 	double alphaSq = (*snr - c) / a;
 	double alpha;
