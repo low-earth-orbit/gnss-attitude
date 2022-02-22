@@ -307,7 +307,7 @@ double spStdEpoch(Epoch *epoch)
 double spDist(double a1, double a2, double a3, double b1, double b2, double b3)
 {
 	// printf("a1 a2 a3 = %lf %lf %lf \t b1 b2 b3 = %lf %lf %lf \n", a1, a2, a3, b1, b2, b3);
-	return (a1 * b1 + a2 * b2 + a3 * b3);
+	return acos(a1 * b1 + a2 * b2 + a3 * b3);
 }
 
 /*
