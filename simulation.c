@@ -181,7 +181,7 @@ int main(void)
 	gsl_rng_env_setup();
 	const gsl_rng_type *T = gsl_rng_default;
 	gsl_rng *r = gsl_rng_alloc(T);
-	gsl_rng *r2 = gsl_rng_alloc(T);
+	// gsl_rng *r2 = gsl_rng_alloc(T);
 
 	double spd, snr;
 	int numVisPt;
@@ -226,44 +226,12 @@ int main(void)
 				snr = -(SNR_A / 8100.0) * pow(rad2deg(spd), 2) + SNR_C; // quadratic
 				visSat[j].snr = snr;
 
-				/* apply SNR variation */
-				if (snr > SNR_C)
-				{
-					snrSigma = SNR_STD_MIN;
-				}
-				else
-				{
-					snrSigma = SNR_STD_MIN + (SNR_STD_MAX - SNR_STD_MIN) * (SNR_C - snr) / SNR_A;
-				}
+				/* calculate satellite's elevation angle */
+				double alphaS = rad2deg(asin(visSat[j].z));
 
-				if (SKEW)
-				{
-					//	if (cos(spd) < 0.5)
-					//	{
-					// snrAdd = snrSigma / 10 * gsl_ran_levy_skew(r2, 1, 1, 1);
-					//	}
-					// snrAdd = -1.4 * snrSigma * (gsl_ran_rayleigh(r2, 1) - sqrt(M_PI / 2));
+				snrSigma = SNR_STD_MAX + ((SNR_STD_MIN - SNR_STD_MAX) / 90.0) * alphaS;
 
-					if (rad2deg(spd) > 75)
-					{
-						snrAdd = -snrSigma * (gsl_ran_gamma(r2, 4, 0.5) - 2);
-					}
-					else if (rad2deg(spd) > 60)
-					{
-						snrAdd = -0.5 * snrSigma * (gsl_ran_gamma(r2, 4, 0.5) - 2) + 0.5 * snrSigma * gsl_ran_gaussian_ziggurat(r, 1);
-					}
-					else
-					{
-						snrAdd = snrSigma * gsl_ran_gaussian_ziggurat(r, 1);
-					}
-					// snrAdd = 0;
-					// printf("snrAdd = %lf\n", snrAdd);
-				}
-				else
-				{
-					snrAdd = gsl_ran_gaussian_ziggurat(r, snrSigma);
-				}
-
+				snrAdd = gsl_ran_gaussian_ziggurat(r, snrSigma);
 				visSat[j].snr += snrAdd;
 
 				/*

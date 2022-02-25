@@ -58,10 +58,6 @@ char *l5gal2[2] = {"E14", "E18"};
 char *l5gal3[1] = {"E12"};
 */
 
-/*
-	Selected band 1 signals
-	Makes adjustment to measured SNR
-*/
 void adjSnr(char *prn, double *el, double *snr)
 {
 	if (prn[0] == 'G') // if GPS
@@ -127,12 +123,15 @@ double getCosA(char *prn, double *snr)
 	c = ANT_SNR_ADJ_MAX;
 	if (prn[0] == 'G') // if GPS
 	{
+		// a = -(12 / 8100.0);
 		a = -(ANT_SNR_ADJ_MAX - ANT_SNR_ADJ_MIN) / 8100.0;
-		// a = -0.00110280101958772; // coefficient A in SNR mapping function SNR = A a^2 + c
+		// a = -0.00114786896918721; // coefficient A in SNR mapping function SNR = A a^2 + c
 	}
 	else if (prn[0] == 'R') // if GLO
 	{
 		a = -(ANT_SNR_ADJ_MAX - ANT_SNR_ADJ_MIN) / 8100.0;
+		// a = -(12 / 8100.0);
+		//  a = -0.000949307008233865;
 		// a = -0.000870181419750473; // coefficient A in SNR mapping function SNR = A a^2 + c
 	}
 	else

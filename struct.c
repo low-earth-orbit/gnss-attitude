@@ -6,7 +6,7 @@
 #include "util.h"
 #include "struct.h"
 
-Sat *createSat(char *time, char *prn, double *az, double *el, double *snr, double *snr2, double *snr3)
+Sat *createSat(char *time, char *prn, double *az, double *el, double *snr, double *snr2, double *snr3, double *mp)
 {
 	Sat *satObj = malloc(sizeof(Sat));
 	(*satObj).time = time;
@@ -16,6 +16,7 @@ Sat *createSat(char *time, char *prn, double *az, double *el, double *snr, doubl
 	(*satObj).snr = snr;
 	(*satObj).snr2 = snr2;
 	(*satObj).snr3 = snr3;
+	(*satObj).mp = mp;
 	return satObj;
 }
 
@@ -47,7 +48,7 @@ void printEpochArray(Epoch **epochArray, long int numEpoch)
 		printf("======== Epoch %s contains %i satellite signals ========\n", (*epochArray[i]).time, n);
 		for (int j = 0; j < n; j++)
 		{
-			//printf("%s\t%s\t%lf\t%lf\t%lf\n", (*epochArray[i]).epochSatArray[j]->time, (*epochArray[i]).epochSatArray[j]->prn, *(*epochArray[i]).epochSatArray[j]->az, *(*epochArray[i]).epochSatArray[j]->el, *(*epochArray[i]).epochSatArray[j]->snr);
+			// printf("%s\t%s\t%lf\t%lf\t%lf\n", (*epochArray[i]).epochSatArray[j]->time, (*epochArray[i]).epochSatArray[j]->prn, *(*epochArray[i]).epochSatArray[j]->az, *(*epochArray[i]).epochSatArray[j]->el, *(*epochArray[i]).epochSatArray[j]->snr);
 			printf("%s\t%s\t%lf\t%lf\t%lf\t%lf\n", (*epochArray[i]).epochSatArray[j]->time, (*epochArray[i]).epochSatArray[j]->prn, *(*epochArray[i]).epochSatArray[j]->az, *(*epochArray[i]).epochSatArray[j]->el, *(*epochArray[i]).epochSatArray[j]->snr, *(*epochArray[i]).epochSatArray[j]->snr2);
 		}
 	}
