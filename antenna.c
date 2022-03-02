@@ -119,18 +119,23 @@ int main(int argc, char **argv)
 			double *az = (double *)malloc(sizeof(double));
 			double *el = (double *)malloc(sizeof(double));
 			double *snrThis = (double *)malloc(sizeof(double));
-			sscanf(line, "%s %s %s %lf %lf %lf", time1, time2, prn, az, el, snrThis);
-			if (*az < 0 || *az > 360 || *el > 90 || *snrThis <= 0) // sanity check
+			double *mp = (double *)malloc(sizeof(double));
+			sscanf(line, "%s %s %s %lf %lf %lf %lf", time1, time2, prn, az, el, snrThis, mp);
+			if (!SIMULATION && (*az < 0 || *az > 360 || *el > 90 || *el < SAT_CUTOFF || *snrThis > SNR_CAP || *snrThis < SNR_FLOOR || prn[0] == 'C' || prn[0] == 'E')) // defense line 1: check raw input data for invalid data
 			{
-				printf("Skipped invalid data found in Az, El or SNR.\n");
+				if (DEBUG)
+				{
+					printf("Skipped invalid data found in Az, El or SNR.\n");
+				}
 				free(prn);
 				free(az);
 				free(el);
 				free(snrThis);
+				free(mp);
 			}
 			else
 			{
-				char *time = concat(time1, time2);
+
 				if (!SIMULATION)
 				{
 					if (i == 1)
@@ -145,22 +150,33 @@ int main(int argc, char **argv)
 					{
 						adjSnr3(prn, el, snrThis);
 					}
+
+					// if (*snrThis > ANT_SNR_ADJ_MAX + OUTLIER_FACTOR * ANT_SNR_STD_MIN || *snrThis < ANT_SNR_ADJ_MIN - OUTLIER_FACTOR * ANT_SNR_STD_MAX) // defense line 2: recorded, but will not be used in calculation, treated as outliers.
+					// {
+					// 	*snrThis = -1;
+					// 	if (DEBUG)
+					// 	{
+					// 		printf("Removed an SNR outlier.\n");
+					// 	}
+					// }
 				}
+
+				char *time = concat(time1, time2);
 				double *snrOther1 = (double *)malloc(sizeof(double));
 				*snrOther1 = -1.0;
 				double *snrOther2 = (double *)malloc(sizeof(double));
 				*snrOther2 = -1.0;
 				if (i == 1)
 				{
-					satArray[satArrayIndex] = createSat(time, prn, az, el, snrThis, snrOther1, snrOther2);
+					satArray[satArrayIndex] = createSat(time, prn, az, el, snrThis, snrOther1, snrOther2, mp);
 				}
 				else if (i == 2)
 				{
-					satArray[satArrayIndex] = createSat(time, prn, az, el, snrOther1, snrThis, snrOther2);
+					satArray[satArrayIndex] = createSat(time, prn, az, el, snrOther1, snrThis, snrOther2, mp);
 				}
 				else if (i == 3)
 				{
-					satArray[satArrayIndex] = createSat(time, prn, az, el, snrOther1, snrOther2, snrThis);
+					satArray[satArrayIndex] = createSat(time, prn, az, el, snrOther1, snrOther2, snrThis, mp);
 				}
 				satArrayIndex++;
 			}
@@ -191,7 +207,7 @@ int main(int argc, char **argv)
 	*/
 	qsort(satArray, satArrayIndex, sizeof(Sat *), cmpSatArray);
 
-	/* 
+	/*
 		form epochArray
 	*/
 	Epoch **epochArray; // A epoch array storing all epochs
@@ -272,7 +288,10 @@ int main(int argc, char **argv)
 	/*
 		print epoch array to check file input read
 	*/
-	//printEpochArray(epochArray, *epochArrayIndex);
+	if (DEBUG)
+	{
+		printEpochArray(epochArray, *epochArrayIndex);
+	}
 
 	/*
 		Axelrad's method (Axelrad & Behre, 1999) -- Compared to Duncan's method, this is the proper use of SNR in determining antenna boresight vector. It requires antenna gain mapping (the relationship between off-boresight angle and SNR for the antenna) and adjustment to measured SNR.
@@ -283,7 +302,7 @@ int main(int argc, char **argv)
 
 	for (long int i = 0; i < *epochArrayIndex; i++)
 	{
-		/*	
+		/*
 			Observation equation X*b = cos(a) corresponds to X*c = y below
 			See GNU Scientific Library Reference Manual for more: https://www.gnu.org/software/gsl/doc/html/lls.html
 		*/
@@ -312,21 +331,33 @@ int main(int argc, char **argv)
 			ae2xyz(*(*epochArray[i]).epochSatArray[j]->az, *(*epochArray[i]).epochSatArray[j]->el, xyz);
 
 			double cosA;
+			double spdDeg;
+			double sigma; // standard deviation of cosA for this observation
 			if (SIMULATION)
 			{
-				cosA = (*(*epochArray[i]).epochSatArray[j]->snr - SNR_C) / SNR_A; // find cosA from the mapping function snr = (MAX_SNR-MIN_SNR)*cos(A)+MIN_SNR;
-				if (cosA > 1)
-				{ // catch the case that cosA > 1
-					cosA = 1;
+				if (*(*epochArray[i]).epochSatArray[j]->snr > SNR_C)
+				{
+					spdDeg = 0;
 				}
-				else if (cosA < 0)
-				{ // catch the case that cosA < 0
-					cosA = 0;
+				else if (*(*epochArray[i]).epochSatArray[j]->snr < (SNR_C - SNR_A))
+				{
+					spdDeg = 90;
 				}
+				else
+				{
+
+					spdDeg = sqrt((SNR_C - (*(*epochArray[i]).epochSatArray[j]->snr)) * 8100.0 / SNR_A); // quadratic
+				}
+				// printf("snr = %f \n", *(*epochArray[i]).epochSatArray[j]->snr);
+				// printf("spdDeg = %f \n", spdDeg);
+
+				cosA = cos(deg2rad(spdDeg));
+
+				sigma = SNR_STD_MAX + ((SNR_STD_MIN - SNR_STD_MAX) / 90.0) * (*(*epochArray[i]).epochSatArray[j]->el);
 			}
 			else // real data, not simulation
 			{
-				if (*(*epochArray[i]).epochSatArray[j]->snr > 0)
+				if (*(*epochArray[i]).epochSatArray[j]->snr > 0) // check if snr is valid. invalid is assigned with value of -1
 				{
 					cosA = getCosA((epochArray[i])->epochSatArray[j]->prn, (*epochArray[i]).epochSatArray[j]->snr);
 				}
@@ -338,15 +369,26 @@ int main(int argc, char **argv)
 				{
 					cosA = getCosA2((epochArray[i])->epochSatArray[j]->prn, (*epochArray[i]).epochSatArray[j]->snr3);
 				}
+				if (WEIGHT_METHOD == 0)
+				{
+					sigma = 1;
+				}
+				else if (WEIGHT_METHOD == 1)
+				{
+					sigma = 8.9318725763 * pow((*(*epochArray[i]).epochSatArray[j]->el), -0.4908794196); // ublox antenna}
+				}
+				else if (WEIGHT_METHOD == 2)
+				{
+					sigma = 1.0 + fabs(*(*epochArray[i]).epochSatArray[j]->mp) * 5 / 0.5;
+				}
 			}
-
 			// Set each observation equation
-			double sigma = 1;
 			gsl_matrix_set(X, j, 0, xyz[0]); // coefficient c0 = x
 			gsl_matrix_set(X, j, 1, xyz[1]); // coefficient c1 = y
 			gsl_matrix_set(X, j, 2, xyz[2]); // coefficient c2 = z
 			gsl_vector_set(y, j, cosA);
-			gsl_vector_set(w, j, 1.0 / (sigma * sigma));
+			gsl_vector_set(w, j, 1.0 / (sigma * sigma)); // inverse variance weight
+														 // printf("sat el = %lf  mp = %lf  sigma snr = %lf\n", *(*epochArray[i]).epochSatArray[j]->el, *(*epochArray[i]).epochSatArray[j]->mp, sigma);
 		}
 
 		/* run multi-parameter regression */
@@ -360,11 +402,11 @@ int main(int argc, char **argv)
 		*(sol->z) = C(2);
 
 		/* least squares stats */
-		//printf("# covariance matrix:\n");
-		//printf("[ %+.5e, %+.5e, %+.5e  \n", COV(0, 0), COV(0, 1), COV(0, 2));
-		//printf("  %+.5e, %+.5e, %+.5e  \n", COV(1, 0), COV(1, 1), COV(1, 2));
-		//printf("  %+.5e, %+.5e, %+.5e ]\n", COV(2, 0), COV(2, 1), COV(2, 2));
-		//printf("# chisq = %g\n", chisq);
+		// printf("# covariance matrix:\n");
+		// printf("[ %+.5e, %+.5e, %+.5e  \n", COV(0, 0), COV(0, 1), COV(0, 2));
+		// printf("  %+.5e, %+.5e, %+.5e  \n", COV(1, 0), COV(1, 1), COV(1, 2));
+		// printf("  %+.5e, %+.5e, %+.5e ]\n", COV(2, 0), COV(2, 1), COV(2, 2));
+		// printf("# chisq = %g\n", chisq);
 		/*
 		double redChiSq = chisq / (n - 3); // reduced chisq = chisq / (# of signals - 3)
 		double lsStdX = sqrt(redChiSq * COV(0, 0))));
@@ -385,33 +427,11 @@ int main(int argc, char **argv)
 		/* from xyz solution derive azimuth-elevation solution*/
 		xyz2aeSol(*(sol->x), *(sol->y), *(sol->z), sol);
 
-		/* apply convergence correction built by simulation */
+		/* apply convergence correction built by simulation FOR UBLOX patch antenna */
 		if (CONVERGENCE_CORRECTION)
 		{
-			if (*(sol->el) > 40.181)
-			{
-				*(sol->el) += 0.0000022678 * pow(*(sol->el), 3) - 0.0005537871 * pow(*(sol->el), 2) + 0.0455341172 * *(sol->el) - 1.2636551736;
-			}
-			else if (*(sol->el) > 0.562466)
-			{
-				*(sol->el) += 0.0000029756 * pow(*(sol->el), 3) - 0.0002119836 * pow(*(sol->el), 2) + 0.0133919561 * *(sol->el) - 0.5684236546;
-			}
-			else if (*(sol->el) > -33.9139)
-			{
-				*(sol->el) += -0.0000374714 * pow(*(sol->el), 3) - 0.0058097797 * pow(*(sol->el), 2) + 0.0088882136 * *(sol->el) - 0.5690671978;
-			}
-			else if (*(sol->el) > -61.2864)
-			{
-				*(sol->el) += 0.0000074641 * pow(*(sol->el), 3) + 0.0074059911 * pow(*(sol->el), 2) + 0.7488207967 * *(sol->el) + 11.0845716711;
-			}
-			else if (*(sol->el) > -73.799)
-			{
-				*(sol->el) += 0.0029469680 * pow(*(sol->el), 3) + 0.5621635563 * pow(*(sol->el), 2) + 35.6911758009 * *(sol->el) + 745.5426340882;
-			}
-			else if (*(sol->el) <= -73.799) // at this elevation angle, the result is not reliable anyway
-			{
-				*(sol->el) += -0.0418102295 * pow(*(sol->el), 2) - 5.4402816535 * *(sol->el) - 185.1646192938;
-			}
+			//*(sol->el) -= 18.73;
+			*(sol->el) += 3 * (0.00000001706777591383 * pow(*(sol->el), 5) - 0.00000365830463561523 * pow(*(sol->el), 4) + 0.00029184216767805400 * pow(*(sol->el), 3) - 0.01844501736946570000 * pow(*(sol->el), 2) + 1.38136248571286000000 * (*(sol->el)) - 48.36802167429280000000);
 
 			if (*(sol->el) > 90)
 			{
@@ -421,6 +441,7 @@ int main(int argc, char **argv)
 			{
 				*(sol->el) = -90;
 			}
+
 			// recompute xyz
 			ae2xyzSol(*(sol->az), *(sol->el), sol);
 		}
@@ -481,17 +502,17 @@ int main(int argc, char **argv)
 	rmsX = sqrt(sumX / *epochArrayIndex);
 	rmsY = sqrt(sumY / *epochArrayIndex);
 	rmsZ = sqrt(sumZ / *epochArrayIndex);
-	double rmsA = rad2deg(asin(sqrt(pow(rmsX, 2) + pow(rmsY, 2) + pow(rmsZ, 2))));
+	double rmsA = rad2deg(sqrt(pow(rmsX, 2) + pow(rmsY, 2) + pow(rmsZ, 2)));
 
 	/* STD by component */
-	stdX = sqrt(sumX2 / (*epochArrayIndex - 1)); // minus 1 since using sample mean
-	stdY = sqrt(sumY2 / (*epochArrayIndex - 1));
-	stdZ = sqrt(sumZ2 / (*epochArrayIndex - 1));
-	double stdA = rad2deg(asin(sqrt(pow(stdX, 2) + pow(stdY, 2) + pow(stdZ, 2))));
+	stdX = sqrt(sumX2 / (*epochArrayIndex));
+	stdY = sqrt(sumY2 / (*epochArrayIndex));
+	stdZ = sqrt(sumZ2 / (*epochArrayIndex));
+	double stdA = rad2deg(sqrt(pow(stdX, 2) + pow(stdY, 2) + pow(stdZ, 2)));
 
 	printf("----------\nStatistics\n----------\nNumber of epochs\n%li\n", *epochArrayIndex);
 
-	if (TRUE_EL >= -90 && TRUE_EL <= 90 && TRUE_AZ <= 360 && TRUE_AZ >= 0) // if antenna truth is provided by the user)
+	if ((TRUE_EL >= -90 && TRUE_EL <= 90 && TRUE_AZ <= 360 && TRUE_AZ >= 0)) // if antenna truth is provided by the user)
 	{
 		printf("\nAntenna truth by user input (E, N, U, Az, El)\n%.2f, %.2f, %.2f, %.2f°, %.2f°\n", trueAntennaXyz[0], trueAntennaXyz[1], trueAntennaXyz[2], (double)TRUE_AZ, (double)TRUE_EL);
 	}
@@ -499,18 +520,18 @@ int main(int argc, char **argv)
 	printf("\nConvergence (E, N, U, Az, El)\n");
 	printf("%.2f, %.2f, %.2f, %.2f°, %.2f°\n", mXyz[0], mXyz[1], mXyz[2], mAe[0], mAe[1]);
 
-	printf("\nStandard deviation\nE = %.4f\nN = %.4f\nU = %.4f\n3D = %.2f°\n", stdX, stdY, stdZ, stdA);
+	printf("\nStandard deviation\nE = %.2f°\nN = %.2f°\nU = %.2f°\n3D = %.2f°\n", rad2deg(stdX), rad2deg(stdY), rad2deg(stdZ), stdA);
 
-	if (TRUE_EL >= -90 && TRUE_EL <= 90 && TRUE_AZ <= 360 && TRUE_AZ >= 0) // if antenna truth is provided by the user)
+	if (RMS && (TRUE_EL >= -90 && TRUE_EL <= 90 && TRUE_AZ <= 360 && TRUE_AZ >= 0)) // if antenna truth is provided by the user
 	{
-		printf("\nRoot-mean-square deviation\nE = %.4f\nN = %.4f\nU = %.4f\n3D = %.2f°\n", rmsX, rmsY, rmsZ, rmsA);
+		printf("\nRMS\nE = %.2f°\nN = %.2f°\nU = %.2f°\n3D = %.2f°\n", rad2deg(rmsX), rad2deg(rmsY), rad2deg(rmsZ), rmsA);
 	}
 
 	/* close output file */
 	fclose(fpw);
 
 	/*
-		free() file input 
+		free() file input
 	*/
 	for (long int i = 0; i < satArrayIndex; i++)
 	{
@@ -520,8 +541,9 @@ int main(int argc, char **argv)
 		free(satArray[i]->el);
 		free(satArray[i]->snr);
 		free(satArray[i]->snr2);
-		free(satArray[i]->snr3); // free attributes
-		free(satArray[i]);		 // free Sat
+		free(satArray[i]->snr3);
+		free(satArray[i]->mp); // free attributes
+		free(satArray[i]);	   // free Sat
 	}
 	free(satArray); // free satArray
 
@@ -551,6 +573,14 @@ int main(int argc, char **argv)
 
 	clock_t endTime = clock();
 	double timeSpent = (double)(endTime - startTime) / CLOCKS_PER_SEC;
+	if (SIMULATION) // remind it is simulation
+	{
+		printf("\nRun in SIMULATION mode");
+	}
+	else
+	{
+		printf("\nRun in REAL DATA mode");
+	}
 	printf("\nProgram execution time: %.2f seconds\n", timeSpent);
 
 	/*

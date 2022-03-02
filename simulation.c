@@ -36,13 +36,13 @@ typedef struct SimuSat
 
 /*
 	Generate points visible by the antenna, which are boresight angle dependent. This function assumes antenna azimuth = 180 deg. That is pointing to negative y (northing). Reference: https://mathworld.wolfram.com/SpherePointPicking.html
-	
+
 		sat: pointer to SimuSat object
-		
+
 		antEl: antenna's elevation angle (a.k.a. boresight angle) in degrees; if the antenna is pointing straight up, that is 90 deg.
-		
+
 		n: number of points on the ENTIRE sphere
-		
+
 		returns: number of satellites visible to the antenna with specific elevation angle
 */
 int randSat(SimuSat *sat, int n, double antEl)
@@ -57,6 +57,50 @@ int randSat(SimuSat *sat, int n, double antEl)
 	double c = tan(M_PI_2 - deg2rad(antEl));
 
 	for (int i = 1; i < n; i++)
+	{
+		theta = 2.0 * M_PI * (double)rand() / (double)RAND_MAX;
+		phi = acos(2.0 * (double)rand() / (double)RAND_MAX - 1);
+		xyz[0] = sin(phi) * cos(theta);
+		xyz[1] = sin(phi) * sin(theta);
+		xyz[2] = cos(phi) / 2;
+
+		// if in visible area, record the point
+		if (xyz[2] > h)
+		{
+			if (antEl == 90 || (antEl > 0 && xyz[2] > c * xyz[1] + h) || (antEl < 0 && xyz[2] < c * xyz[1] + h) || (antEl == 0 && xyz[1] < 0))
+			{
+				xyz[2] = cos(phi) - h; // adjust by observer location
+				normalizeXyz(xyz);
+				xyz2ae(xyz[0], xyz[1], xyz[2], azel);
+
+				sat[numVisPt].x = xyz[0];
+				sat[numVisPt].y = xyz[1];
+				sat[numVisPt].z = xyz[2];
+				sat[numVisPt].az = azel[0];
+				sat[numVisPt].el = azel[1];
+				sat[numVisPt].snr = 0; // snr will be updated in main()
+				numVisPt++;
+			}
+		}
+	}
+	return numVisPt;
+}
+
+/*
+	generate n visible satellite
+*/
+int randSat2(SimuSat *sat, int n, double antEl)
+{
+	int numVisPt = 0;
+	double theta, phi;
+	double azel[2];
+	double xyz[3];
+
+	/* r_e = 6370	r_s = 6370 + 21450 = 27820 */
+	double h = 6370 / 27820;
+	double c = tan(M_PI_2 - deg2rad(antEl));
+
+	while (numVisPt < n)
 	{
 		theta = 2.0 * M_PI * (double)rand() / (double)RAND_MAX;
 		phi = acos(2.0 * (double)rand() / (double)RAND_MAX - 1);
@@ -109,9 +153,9 @@ int testSat(SimuSat *sat, int n, double antEl)
 		{
 			if (antEl == 90 || (antEl > 0 && xyz[2] > c * xyz[1] + h) || (antEl < 0 && xyz[2] < c * xyz[1] + h) || (antEl == 0 && xyz[1] < 0))
 			{
-				//xyz[2] = cos(phi) - h; // adjust by observer location
-				//normalizeXyz(xyz);
-				//xyz2ae(xyz[0], xyz[1], xyz[2], azel);
+				// xyz[2] = cos(phi) - h; // adjust by observer location
+				// normalizeXyz(xyz);
+				// xyz2ae(xyz[0], xyz[1], xyz[2], azel);
 
 				sat[numVisPt].x = xyz[0];
 				sat[numVisPt].y = xyz[1];
@@ -137,35 +181,57 @@ int main(void)
 	gsl_rng_env_setup();
 	const gsl_rng_type *T = gsl_rng_default;
 	gsl_rng *r = gsl_rng_alloc(T);
+	// gsl_rng *r2 = gsl_rng_alloc(T);
 
 	double spd, snr;
 	int numVisPt;
 	double snrAdd;
-
 	fprintf(fpw, "SIMULATED INPUT FILE\n"); // print header
 
 	for (int i = 0; i < NUM_EPOCH; i++)
 	{ // one simulation per loop
-		SimuSat *visSat = (SimuSat *)malloc(NUM_SAT_SPHERE * sizeof(SimuSat));
-		if (visSat == NULL)
+		SimuSat *visSat;
+		if (SIMULATE_SAT_VISIBLE)
 		{
-			fprintf(stderr, "malloc() failed for creating visSat\n");
-			exit(-1);
+			visSat = (SimuSat *)malloc(NUM_SAT_VISIBLE * sizeof(SimuSat));
+
+			if (visSat == NULL)
+			{
+				fprintf(stderr, "malloc() failed for creating visSat\n");
+				exit(-1);
+			}
+
+			numVisPt = randSat2(visSat, NUM_SAT_VISIBLE, TRUE_EL);
+		}
+		else
+		{
+			visSat = (SimuSat *)malloc(NUM_SAT_SPHERE * sizeof(SimuSat));
+
+			if (visSat == NULL)
+			{
+				fprintf(stderr, "malloc() failed for creating visSat\n");
+				exit(-1);
+			}
+			numVisPt = randSat(visSat, NUM_SAT_SPHERE, TRUE_EL);
 		}
 
-		numVisPt = randSat(visSat, NUM_SAT_SPHERE, TRUE_EL);
+		double snrSigma;
 		if (numVisPt != 0)
 		{
 			for (int j = 0; j < numVisPt; j++)
 			{
 				/* compute SNR by assumed relationship between SNR and off-boresight angle */
 				spd = spDist(visSat[j].x, visSat[j].y, visSat[j].z, 0, -cos(deg2rad(TRUE_EL)), sin(deg2rad(TRUE_EL))); // spd: off-boresight angle in rad
-				snr = SNR_A * cos(spd) + SNR_C;																		   // cosine relationship is default (preferred)
+				// snr = SNR_A * cos(spd) + SNR_C;																		   // cosine relationship
+				snr = -(SNR_A / 8100.0) * pow(rad2deg(spd), 2) + SNR_C; // quadratic
 				visSat[j].snr = snr;
 
-				/* apply uniform SNR variation */
-				snrAdd = (double)SNR_STD * gsl_ran_gaussian_ziggurat(r, 1);
+				/* calculate satellite's elevation angle */
+				double alphaS = rad2deg(asin(visSat[j].z));
 
+				snrSigma = SNR_STD_MAX + ((SNR_STD_MIN - SNR_STD_MAX) / 90.0) * alphaS;
+
+				snrAdd = gsl_ran_gaussian_ziggurat(r, snrSigma);
 				visSat[j].snr += snrAdd;
 
 				/*

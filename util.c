@@ -75,8 +75,8 @@ void normalizeXyz(double *xyz)
 void normalize(Sol *sol)
 {
 	double len = sqrt(pow(*sol->x, 2) + pow(*sol->y, 2) + pow(*sol->z, 2));
-	//printf("%lf,%lf,%lf\n", *sol->x, *sol->y, *sol->z);
-	//printf("length = %lf\n", len);
+	// printf("%lf,%lf,%lf\n", *sol->x, *sol->y, *sol->z);
+	// printf("length = %lf\n", len);
 	if (len != 0)
 	{
 		*sol->x /= len;
@@ -135,7 +135,7 @@ void xyz2ae(double x, double y, double z, double *azel)
 	}
 	else if (y == 0 && x == 0)
 	{
-		azel[0] = -999; //undefined
+		azel[0] = -999; // undefined
 		azel[1] = 0.0;
 	}
 	else
@@ -158,7 +158,7 @@ void xyz2ae(double x, double y, double z, double *azel)
 /*
 	Input local coordinates, E(x) N(y) U(x)
 		Don't mistake this x, y, z as ECEF coordinates
-	Sets the values (azimuth and elevation angle in degrees) in Sol object 
+	Sets the values (azimuth and elevation angle in degrees) in Sol object
 */
 void xyz2aeSol(double x, double y, double z, Sol *sol)
 {
@@ -176,7 +176,7 @@ void xyz2aeSol(double x, double y, double z, Sol *sol)
 	}
 	else if (y == 0 && x == 0)
 	{
-		*(sol->az) = -999; //undefined
+		*(sol->az) = -999; // undefined
 		*(sol->el) = 0.0;
 	}
 	else
@@ -306,13 +306,13 @@ double spStdEpoch(Epoch *epoch)
 */
 double spDist(double a1, double a2, double a3, double b1, double b2, double b3)
 {
-	//printf("a1 a2 a3 = %lf %lf %lf \t b1 b2 b3 = %lf %lf %lf \n", a1, a2, a3, b1, b2, b3);
+	// printf("a1 a2 a3 = %lf %lf %lf \t b1 b2 b3 = %lf %lf %lf \n", a1, a2, a3, b1, b2, b3);
 	return acos(a1 * b1 + a2 * b2 + a3 * b3);
 }
 
 /*
 int main (void) {
-	
+
 	double x = 1;
 	double y = 2;
 	double z = 3;
@@ -321,13 +321,13 @@ int main (void) {
 	double array[2];
 	xyz2ae(x, y, z, array);
 	//printf("az = %lf\tel = %lf\n", array[0], array[1]);
-	
+
 	double az = array[0];
 	double el = array[1];
 	double vector[3];
 	ae2xyz(az, el, vector);
 	printf("x = %lf\ty = %lf\tz = %lf\t\n", vector[0], vector[1], vector[2]);
-	
+
 	exit(0);
 }
 */
