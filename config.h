@@ -9,7 +9,7 @@
 #define SAT_CUTOFF 0	   // satellite cutoff elevation angle
 
 /* antenna truth for statistics or simulation */
-#define TRUE_AZ 35
+#define TRUE_AZ 30
 #define TRUE_EL 30 // in degrees
 
 /* processing options */
